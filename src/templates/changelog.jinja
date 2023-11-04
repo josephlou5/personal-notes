@@ -1,0 +1,72 @@
+{% extends "shared/layout.jinja" %}
+
+{% block title %}
+Changelog
+{% endblock %}
+
+{% macro _issue(num) %}
+{% if num is number %}
+(<a href="{{ REPO_URL }}/issues/{{ num }}" target="_blank">issue #{{ num }}</a>)
+{% endif %}
+{% endmacro %}
+
+{% block body %}
+<div id="changelog-body" class="container-fluid">
+  <div class="row">
+    <div class="col">
+      <h2>Changelog</h2>
+    </div>
+  </div>
+  <div class="row mb-2">
+    <div class="col">
+      GitHub repo: <a href="{{ REPO_URL }}" target="_blank">{{ REPO_URL }}</a>
+    </div>
+  </div>
+  {% if changes|length == 0 %}
+  <div class="row">
+    <div class="col">
+      No changes so far
+    </div>
+  </div>
+  {% else %}
+  {% for change in changes %}
+  <div class="row mb-2">
+    <div class="col">
+      <div>
+        {% with title = change["title"] %}
+        {% if not title %}
+        <span class="fs-4">v{{ change["version"]|e }}</span>
+        {% else %}
+        <span class="fs-4">
+          v{{ change["version"]|e }}: {{ change["title"]|e }}
+        </span>
+        {% endif %}
+        {% endwith %}
+        <span class="fst-italic text-muted ms-2">
+          {{ change["timestamp"]|e }}
+        </span>
+      </div>
+      {% with descriptions = change.get("descriptions", []) %}
+      {% if descriptions|length == 0 %}
+      <em class="text-muted">No description</em>
+      {% else %}
+      <ul>
+        {% for description in descriptions %}
+        {% if description is mapping %}
+        <li>
+          {{ description["description"]|e }}
+          {{ _issue(description["issue"]) }}
+        </li>
+        {% else %}
+        <li>{{ description|e }}</li>
+        {% endif %}
+        {% endfor %}
+      </ul>
+      {% endif %}
+      {% endwith %}
+    </div>
+  </div>
+  {% endfor %}
+  {% endif %}
+</div>
+{% endblock %}

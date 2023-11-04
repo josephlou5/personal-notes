@@ -1,3 +1,17 @@
+# MacOS files
+.DS_Store
+
+# VSCode
+.vscode/
+
+# Private keys
+keys.py
+cert.pem
+key.pem
+
+# Run development server (contains sensitive environment variables)
+runserver.sh
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]

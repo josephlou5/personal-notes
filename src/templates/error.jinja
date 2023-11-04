@@ -1,0 +1,10 @@
+{% extends "shared/layout.jinja" %}
+
+{% block title %}
+{{ title|e }}
+{% endblock %}
+
+{% block body %}
+<h2>Error: {{ title|e }}</h2>
+<div>{{ message|e }}</div>
+{% endblock %}
