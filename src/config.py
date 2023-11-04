@@ -58,7 +58,7 @@ class DevConfig(Config):
             password=DEV_POSTGRES_PASSWORD,
             server="localhost",
             port=5432,
-            db_name="ectc-tournament-app-dev",
+            db_name="personal-notes-dev",
         )
     )
 

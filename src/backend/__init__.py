@@ -6,11 +6,15 @@ Methods and objects pertaining to the backend database.
 
 from flask_migrate import Migrate
 
+from backend import user
 from backend.models import db
 
 # =============================================================================
 
-__all__ = ("db",)
+__all__ = (
+    "db",
+    "user",
+)
 
 # =============================================================================
 

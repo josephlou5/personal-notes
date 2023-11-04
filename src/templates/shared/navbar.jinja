@@ -35,7 +35,18 @@
       </ul>
 
       <ul class="nav navbar-nav navbar-right">
-        {# Right side #}
+        {% if not user_is_logged_in %}
+        <li class="nav-item">
+          <a class="btn btn-success" href="{{ url_for('log_in') }}">Log in</a>
+        </li>
+        {% else %}
+        <li class="navbar-text me-3">
+          <strong>{{ logged_in_email|e }}</strong>
+        </li>
+        <li class="nav-item">
+          <a class="btn btn-success" href="{{ url_for('log_out') }}">Log out</a>
+        </li>
+        {% endif %}
       </ul>
     </div>
   </div>

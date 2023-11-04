@@ -11,6 +11,7 @@ from werkzeug.exceptions import NotFound
 import backend
 import views
 from config import get_config
+from utils.auth import get_email, is_logged_in, is_logged_in_admin
 from utils.server import _render
 
 # =============================================================================
@@ -39,6 +40,15 @@ def inject_template_variables():
         "APP_NAME": APP_NAME,
         "REPO_URL": "https://github.com/josephlou5/personal-notes",
     }
+    user_is_logged_in = is_logged_in()
+    variables["user_is_logged_in"] = user_is_logged_in
+    if user_is_logged_in:
+        variables.update(
+            {
+                "logged_in_email": get_email(),
+                "user_is_admin": is_logged_in_admin(),
+            }
+        )
     return variables
 
 

@@ -9,9 +9,11 @@ flask-migrate = "~=4.0.5"
 flask-sqlalchemy = "~=3.1.1"
 flask-wtf = "~=1.2.1"
 gunicorn = "~=21.2.0"
+oauthlib = "~=3.2.2"
 psycopg2-binary = "~=2.9.9"
 python-dotenv = "~=1.0.0"
 pytz = "~=2023.3.post1"
+requests = "~=2.31.0"
 
 [dev-packages]
 black = "~=23.10.1"

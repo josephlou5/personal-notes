@@ -4,7 +4,7 @@ All the views for the app.
 
 # =============================================================================
 
-from views import shared
+from views import auth, shared
 
 # =============================================================================
 
@@ -12,5 +12,8 @@ from views import shared
 def register_all(app):
     """Registers all the defined routes to the app."""
 
-    for module in (shared,):
+    for module in (
+        shared,
+        auth,
+    ):
         module.app.register(app)
