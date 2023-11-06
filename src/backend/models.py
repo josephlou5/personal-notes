@@ -4,6 +4,7 @@ The database and models.
 
 # =============================================================================
 
+import re
 from datetime import datetime
 from typing import Optional
 
@@ -16,6 +17,8 @@ db = SQLAlchemy()
 
 # =============================================================================
 
+USERNAME_PATTERN = re.compile(r"[a-zA-Z0-9_.]{3,30}")
+
 MAX_NOTE_LENGTH = 10000
 
 # =============================================================================
@@ -27,16 +30,16 @@ class User(db.Model):
     __tablename__ = "Users"
 
     id = Column(Integer, primary_key=True)
-    username = Column(String(30), unique=True, nullable=False)
     email = Column(String(), unique=True, nullable=False)
+    username = Column(String(30), unique=True, nullable=False)
     display_name = Column(String(100), nullable=False)
     is_admin = Column(Boolean(), nullable=False, default=False)
     is_deleted = Column(Boolean(), nullable=False, default=False)
 
     def __init__(
         self,
-        username: str,
         email: str,
+        username: str,
         display_name: str,
         is_deleted: bool = False,
     ):
@@ -46,8 +49,13 @@ class User(db.Model):
             raise ValueError(
                 "Display name must be between 1 and 100 characters"
             )
-        self.username = username
+        if USERNAME_PATTERN.fullmatch(username) is None:
+            raise ValueError(
+                "Username must only consist of letters, numbers, underscore, "
+                "or period."
+            )
         self.email = email
+        self.username = username
         self.display_name = display_name
         self.is_deleted = is_deleted
 

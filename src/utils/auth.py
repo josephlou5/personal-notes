@@ -5,7 +5,7 @@ Utilities for authentication and authorization.
 # =============================================================================
 
 import functools
-from typing import Optional
+from typing import Dict, Optional
 
 from flask import redirect, request, session, url_for
 from werkzeug.exceptions import Forbidden
@@ -15,9 +15,11 @@ import backend
 # =============================================================================
 
 __all__ = (
-    "_redirect_last",
+    "redirect_last",
     "set_redirect_page",
+    "set_logged_in_user",
     "get_email",
+    "get_logged_in_user",
     "is_logged_in",
     "is_logged_in_admin",
     "login_required",
@@ -26,7 +28,7 @@ __all__ = (
 # =============================================================================
 
 
-def _redirect_last(force_default=False):
+def redirect_last(force_default=False):
     """Redirects to the redirect page."""
     default_uri = url_for("index")
     if force_default:
@@ -44,14 +46,45 @@ def set_redirect_page():
 # =============================================================================
 
 
+def set_logged_in_user(user: backend.models.User):
+    session["user"] = {
+        "id": user.id,
+        "email": user.email,
+        "username": user.username,
+        "display_name": user.display_name,
+        "is_admin": user.is_admin,
+    }
+
+
 def get_email() -> Optional[str]:
     """Gets the email of the currently logged in user, or None."""
     return session.get("email", None)
 
 
+def get_logged_in_user() -> Optional[Dict]:
+    """Gets the currently logged in user, or None if no one is logged
+    in (or the user hasn't been created yet).
+
+    The returned user is a dictionary containing values for a user.
+    """
+    email = get_email()
+    session_user = session.get("user", None)
+    if session_user is None or session_user["email"] != email:
+        if email is None:
+            # No one is logged in
+            return None
+        user = backend.user.get_by_email(email)
+        if user is None:
+            # Account not found
+            return None
+        set_logged_in_user(user)
+        session_user = session["user"]
+    return session_user
+
+
 def is_logged_in() -> bool:
     """Returns True if a user is currently logged in."""
-    return get_email() is not None
+    return get_logged_in_user() is not None
 
 
 def is_logged_in_admin() -> bool:
@@ -59,10 +92,10 @@ def is_logged_in_admin() -> bool:
 
     If no user is logged in, returns False.
     """
-    email = get_email()
-    if email is None:
+    user = get_logged_in_user()
+    if user is None:
         return False
-    return backend.user.is_admin_email(email)
+    return user["is_admin"]
 
 
 # =============================================================================
@@ -94,7 +127,7 @@ def login_required(admin=False, save_redirect=True):
             if admin and not is_logged_in_admin():
                 # Not an admin
                 if redirected_to_this_page:
-                    return _redirect_last(force_default=True)
+                    return redirect_last(force_default=True)
                 raise Forbidden(
                     "You do not have permission to view an admin page."
                 )

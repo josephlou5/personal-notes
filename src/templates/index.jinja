@@ -26,9 +26,11 @@
             Welcome to Personal Notes, a web app to receive and show notes that
             other people send you.
           </div>
-          <div>
-            Please sign in to get started.
+          {% if not user_is_logged_in %}
+          <div class="mt-2">
+            Please log in to get started.
           </div>
+          {% endif %}
         </div>
       </div>
     </div>

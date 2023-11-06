@@ -1,0 +1,30 @@
+{% extends "shared/layout.jinja" %}
+
+{% import "shared/forms.jinja" as forms %}
+
+{% block title %}
+Create Account
+{% endblock %}
+
+{% block body %}
+<div id="create-account-body" class="container-fluid">
+  <div class="card w-50 mx-auto">
+    <div class="card-body">
+      <h5 class="card-title">Create Account</h5>
+      {% for message in get_flashed_messages() %}
+      <div class="alert alert-sm alert-danger" role="alert">
+        {{ message|e }}
+      </div>
+      {% endfor %}
+      <form method="POST" novalidate>
+        {{ form.csrf_token }}
+
+        {{ forms.create_field(form.username, placeholder=true) }}
+        {{ forms.create_field(form.name, placeholder=true) }}
+
+        {{ forms.create_submit_btn(form.submit) }}
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

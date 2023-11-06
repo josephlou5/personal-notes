@@ -1,0 +1,5 @@
+/* A Bootstrap ".alert" with halved padding */
+.alert-sm {
+  --bs-alert-padding-x: 0.5rem;
+  --bs-alert-padding-y: 0.5rem;
+}

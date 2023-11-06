@@ -1,0 +1,23 @@
+{# Macros for forms #}
+
+{% macro create_field(field, placeholder = false) %}
+<div class="mb-2">
+  {{ field.label(class="form-label") }}
+  {% if placeholder %}
+  {{ field(placeholder=field.label.text, **kwargs) }}
+  {% else %}
+  {{ field(**kwargs) }}
+  {% endif %}
+  {% if field.errors %}
+  <div class="invalid-feedback">
+    {% for error in field.errors %}
+    <div>{{ error|e }}</div>
+    {% endfor %}
+  </div>
+  {% endif %}
+</div>
+{% endmacro %}
+
+{% macro create_submit_btn(field, accent = "success") %}
+{{ field(class="btn btn-" ~ accent) }}
+{% endmacro %}

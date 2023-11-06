@@ -11,7 +11,8 @@ import requests
 from flask import current_app, redirect, request, session, url_for
 from oauthlib.oauth2 import WebApplicationClient
 
-from utils.auth import _redirect_last
+import backend
+from utils.auth import redirect_last, set_logged_in_user
 from utils.server import AppRoutes
 
 # =============================================================================
@@ -45,14 +46,27 @@ def _get_google_provider_cfg(*keys):
     return [google_provider_cfg[key] for key in keys]
 
 
+def _set_user_email(email: str):
+    email = email.lower()
+    session["email"] = email
+
+    # Get user object
+    user = backend.user.get_by_email(email)
+    if user is None:
+        # Doesn't exist yet; need to create an account
+        return redirect(url_for("create_account"))
+
+    set_logged_in_user(user)
+    return redirect_last()
+
+
 @app.route("/login", methods=["GET"])
 def log_in():
     if current_app.debug:
         # If in development, allow logging in as anyone
         log_in_as = request.args.get("as", None)
         if log_in_as is not None:
-            session["email"] = log_in_as
-            return _redirect_last()
+            return _set_user_email(log_in_as)
 
     # Determine the URL for Google login
     authorization_endpoint = _get_google_provider_cfg("authorization_endpoint")
@@ -111,20 +125,21 @@ def login_callback():
 
     if not user_info.get("email_verified", False):
         return "User email not available or not verified by Google.", 400
-    if user_info.get("email", None) is None:
+    user_email = user_info.get("email", None)
+    if user_email is None:
         return "User email could not be found.", 400
 
     # Save user as logged in
-    session["email"] = user_info["email"]
     session["user_info"] = user_info
 
-    return _redirect_last()
+    return _set_user_email(user_email)
 
 
 @app.route("/logout", methods=["GET"])
 def log_out():
     # Clear logged in user from the session
-    session.pop("email", None)
     session.pop("user_info", None)
+    session.pop("email", None)
+    session.pop("user", None)
     # After logging out, redirect to index
     return redirect(url_for("index"))
