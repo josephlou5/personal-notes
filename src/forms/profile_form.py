@@ -1,5 +1,5 @@
 """
-The form to create an account.
+The form to edit a user's profile.
 """
 
 # =============================================================================
@@ -13,8 +13,8 @@ from forms.wtforms_bootstrap import StringField, SubmitField
 # =============================================================================
 
 
-class CreateAccountForm(FlaskForm):
-    """A form to create an account."""
+class ProfileForm(FlaskForm):
+    """A form to edit a user's profile."""
 
     username = StringField(
         "Username",
@@ -34,7 +34,7 @@ class CreateAccountForm(FlaskForm):
             ),
         ],
     )
-    name = StringField(
+    display_name = StringField(
         "Name",
         [
             InputRequired("Please enter your name."),
@@ -42,4 +42,4 @@ class CreateAccountForm(FlaskForm):
         ],
     )
 
-    submit = SubmitField("Create")
+    submit = SubmitField("Save")

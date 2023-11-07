@@ -1,0 +1,163 @@
+{% extends "shared/layout.jinja" %}
+
+{% import "shared/macros.jinja" as macros %}
+{% import "shared/forms.jinja" as forms %}
+
+{% set friends_list_id = "friends-list" %}
+{% set self_public_profile_link_id = "self-public-profile-link" %}
+{% set copy_profile_link_btn_id = "copy-public-profile-link" %}
+{% set username_profile_cls = "username-profile" %}
+
+{% set danger_zone_id = "danger-zone" %}
+
+{% block title %}
+My Profile
+{% endblock %}
+
+{% block style %}
+<style>
+  .{{ username_profile_cls }} {
+    border-radius: var(--bs-border-radius) !important;
+    padding: 0.25rem 0.5rem;
+    background-color: var(--bs-secondary-bg-subtle) !important;
+    text-decoration: none;
+  }
+
+  #{{ danger_zone_id }} > * {
+    display: block;
+  }
+  #{{ danger_zone_id }} > :not(:last-child) {
+    margin-bottom: 0.5rem;
+  }
+</style>
+{% endblock %}
+
+{% block body %}
+<div id="profile-body" class="container-fluid body">
+  <div class="card">
+    <h5 class="card-header">Profile</h5>
+    <div class="card-body">
+      {% for accent, message in get_flashed_messages(with_categories=true) %}
+      <div class="alert alert-sm alert-{{ accent|e }} alert-dismissible fade show" role="alert">
+        {{ message|e }}
+        {% if accent == "success" %}
+        {{ macros.bs_close_btn("alert") }}
+        {% endif %}
+      </div>
+      {% endfor %}
+      <div class="mb-2">
+        <span class="fw-bold">Email: </span> {{ logged_in_user.email|e }}
+      </div>
+      <form method="POST" novalidate>
+        {{ form.csrf_token }}
+
+        {{ forms.create_field(form.username, placeholder=true) }}
+        {{ forms.create_field(form.display_name, placeholder=true) }}
+
+        {{ forms.create_submit_btn(form.submit, classes="float-end") }}
+      </form>
+    </div>
+  </div>
+  <div class="card mt-4">
+    <h5 class="card-header">Friends</h5>
+    <ul class="list-group list-group-flush">
+      <li class="list-group-item">
+        <div>
+          My public profile:
+          <a id="{{ self_public_profile_link_id }}" href="{{ url_for('public_profile', username=logged_in_user.username) }}" class="{{ username_profile_cls }}">@{{ logged_in_user.username|e }}</a>
+          <button type="button" id="{{ copy_profile_link_btn_id }}" class="btn btn-sm btn-success ms-2">
+            <span id="{{ copy_profile_link_btn_id }}-text">
+              <i class="bi bi-clipboard"></i>
+              Copy Profile Link
+            </span>
+            <span id="{{ copy_profile_link_btn_id }}-copied" class="d-none">
+              <i class="bi bi-check"></i>
+              Copied!
+            </span>
+          </button>
+        </div>
+        <div class="mt-2">
+          To add a new friend, go to their public profile and click "Add Friend"!
+        </div>
+      </li>
+      <li class="list-group-item py-3">
+        <div id="{{ friends_list_id }}" class="row row-cols-auto g-2">
+          <div class="placeholder-glow">
+            <span class="placeholder rounded" style="width: 100px;"></span>
+            <span class="placeholder rounded" style="width: 100px;"></span>
+            <span class="placeholder rounded" style="width: 100px;"></span>
+            <span class="placeholder rounded" style="width: 100px;"></span>
+            <span class="placeholder rounded" style="width: 100px;"></span>
+          </div>
+        </div>
+      </li>
+    </ul>
+  </div>
+  <div class="card mt-4 border-danger border-2">
+    <h5 class="card-header text-bg-danger">Danger Zone</h5>
+    <div id="{{ danger_zone_id }}" class="card-body">
+      {# These buttons don't currently do anything #}
+      <button type="button" class="btn btn-danger">
+        Remove all my friends
+      </button>
+      <button type="button" class="btn btn-danger">
+        Delete all my sent notes
+      </button>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block script %}
+<script>
+  $(() => {
+    $("#{{ copy_profile_link_btn_id }}").on("click", function (event) {
+      const profilePath = $("#{{ self_public_profile_link_id }}").attr("href");
+      const fullUrl = window.location.origin + profilePath;
+      copyTextToClipboard(fullUrl);
+
+      const $text = $("#{{ copy_profile_link_btn_id }}-text");
+      const $copied = $("#{{ copy_profile_link_btn_id }}-copied");
+      $text.addClass("d-none");
+      $copied.removeClass("d-none");
+      // After 3 seconds, revert back to the regular text
+      setTimeout(() => {
+        $copied.addClass("d-none");
+        $text.removeClass("d-none");
+      }, 3000);
+    });
+
+    // When the page loads, fetch this user's friends
+    ajaxRequest("GET", "{{ url_for('list_user_friends') }}", {
+      success: (response, status, jqXHR) => {
+        const $friendsList = $("#{{ friends_list_id }}");
+        if (!response.success) {
+          $friendsList.text(response.error).addClass("text-danger");
+          return;
+        }
+        // Clear the friends list
+        $friendsList.html("");
+        const friends = response.friends;
+        if (friends.length === 0) {
+          $friendsList.append(
+            $("<div>", { class: "col" }).text("No friends yet.")
+          );
+          return;
+        }
+        for (const username of friends) {
+          $friendsList.append(
+            $("<div>", { class: "col" }).append(
+              $("<a>", {
+                href: `{{ url_for('public_profile', username='') }}${username}`,
+                class: "{{ username_profile_cls }}",
+              }).text(`@${username}`)
+            )
+          );
+        }
+      },
+    });
+
+    dismissSuccessAlerts();
+  });
+</script>
+{% endblock %}

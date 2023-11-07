@@ -41,7 +41,13 @@
         </li>
         {% else %}
         <li class="navbar-text me-3">
-          <strong>{{ user.username|e }}</strong>
+          <a
+            id="navbar-username"
+            class="rounded p-2"
+            href="{{ url_for('profile') }}"
+          >
+            <strong>@{{ logged_in_user.username|e }}</strong>
+          </a>
         </li>
         <li class="nav-item">
           <a class="btn btn-danger" href="{{ url_for('log_out') }}">Log out</a>

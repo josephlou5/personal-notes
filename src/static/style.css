@@ -1,5 +1,22 @@
+.body {
+  max-width: 1000px;
+}
+
 /* A Bootstrap ".alert" with halved padding */
 .alert-sm {
   --bs-alert-padding-x: 0.5rem;
   --bs-alert-padding-y: 0.5rem;
+}
+.alert-sm.alert-dismissible .btn-close {
+  padding: 0.75rem 0.75rem;
+}
+
+/* The user's username in the navbar. */
+#navbar-username {
+  /* Remove the link underline. */
+  text-decoration-line: none;
+}
+#navbar-username:hover {
+  /* Add a border on hover. */
+  background-color: rgb(100, 100, 100);
 }

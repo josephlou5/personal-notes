@@ -7,12 +7,12 @@ Create Account
 {% endblock %}
 
 {% block body %}
-<div id="create-account-body" class="container-fluid">
-  <div class="card w-50 mx-auto">
+<div id="create-account-body" class="container-fluid body">
+  <div class="card">
+    <h5 class="card-header">Create Account</h5>
     <div class="card-body">
-      <h5 class="card-title">Create Account</h5>
-      {% for message in get_flashed_messages() %}
-      <div class="alert alert-sm alert-danger" role="alert">
+      {% for accent, message in get_flashed_messages(with_categories=true) %}
+      <div class="alert alert-sm alert-{{ accent|e }}" role="alert">
         {{ message|e }}
       </div>
       {% endfor %}
@@ -20,9 +20,9 @@ Create Account
         {{ form.csrf_token }}
 
         {{ forms.create_field(form.username, placeholder=true) }}
-        {{ forms.create_field(form.name, placeholder=true) }}
+        {{ forms.create_field(form.display_name, placeholder=true) }}
 
-        {{ forms.create_submit_btn(form.submit) }}
+        {{ forms.create_submit_btn(form.submit, classes="float-end") }}
       </form>
     </div>
   </div>

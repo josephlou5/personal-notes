@@ -1,0 +1,10 @@
+{# Shared macros #}
+
+{% macro bs_close_btn(dismiss) %}
+<button
+  type="button"
+  class="btn-close"
+  data-bs-dismiss="{{ dismiss }}"
+  aria-label="Close"
+></button>
+{% endmacro %}

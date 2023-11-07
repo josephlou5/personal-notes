@@ -44,7 +44,7 @@ def inject_template_variables():
     variables.update(
         {
             "user_is_logged_in": session_user is not None,
-            "user": session_user,
+            "logged_in_user": session_user,
         }
     )
     return variables

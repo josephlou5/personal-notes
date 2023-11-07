@@ -18,6 +18,6 @@
 </div>
 {% endmacro %}
 
-{% macro create_submit_btn(field, accent = "success") %}
-{{ field(class="btn btn-" ~ accent) }}
+{% macro create_submit_btn(field, accent = "success", classes = "") %}
+{{ field(class="btn btn-" ~ accent ~ " " ~ classes) }}
 {% endmacro %}
