@@ -43,21 +43,27 @@ class User(db.Model):
         display_name: str,
         is_deleted: bool = False,
     ):
+        self.email = email
+        self.set_username(username)
+        self.set_display_name(display_name)
+        self.is_deleted = is_deleted
+
+    def set_username(self, username: str):
         if not 3 <= len(username) <= 30:
             raise ValueError("Username must be between 3 and 30 characters")
-        if not 1 <= len(display_name) <= 100:
-            raise ValueError(
-                "Display name must be between 1 and 100 characters"
-            )
         if USERNAME_PATTERN.fullmatch(username) is None:
             raise ValueError(
                 "Username must only consist of letters, numbers, underscore, "
                 "or period."
             )
-        self.email = email
         self.username = username
+
+    def set_display_name(self, display_name: str):
+        if not 1 <= len(display_name) <= 100:
+            raise ValueError(
+                "Display name must be between 1 and 100 characters"
+            )
         self.display_name = display_name
-        self.is_deleted = is_deleted
 
 
 class Friendship(db.Model):
@@ -112,10 +118,13 @@ class FriendNickname(db.Model):
     def __init__(self, user_id: int, friend_id: int, nickname: str):
         if user_id == friend_id:
             raise ValueError("Cannot be friends with yourself")
-        if not 1 <= len(nickname) <= 100:
-            raise ValueError("Nickname must be between 1 and 100 characters")
         self.user_id = user_id
         self.friend_id = friend_id
+        self.set_nickname(nickname)
+
+    def set_nickname(self, nickname: str):
+        if not 1 <= len(nickname) <= 100:
+            raise ValueError("Nickname must be between 1 and 100 characters")
         self.nickname = nickname
 
 
@@ -135,11 +144,20 @@ class DraftNote(db.Model):
     ):
         if user_id == recipient_id:
             raise ValueError("Cannot send note to yourself")
-        if len(text) > MAX_NOTE_LENGTH:
-            raise ValueError("Max note length exceeded")
         self.user_id = user_id
         self.recipient_id = recipient_id
+        self.set_text(text)
+
+    def set_text(self, text: str):
+        if len(text) > MAX_NOTE_LENGTH:
+            raise ValueError("Max note length exceeded")
         self.text = text
+
+    def can_be_purged(self) -> bool:
+        """Returns whether this draft can be purged because it contains
+        no interesting information.
+        """
+        return self.recipient_id is None and len(self.text) == 0
 
 
 class Note(db.Model):
@@ -161,12 +179,17 @@ class Note(db.Model):
     ):
         if sender_id == recipient_id:
             raise ValueError("Cannot send note to yourself")
-        if len(text) > MAX_NOTE_LENGTH:
-            raise ValueError("Max note length exceeded")
         self.sender_id = sender_id
         self.recipient_id = recipient_id
-        self.text = text
+        self.set_text(text)
         self.time_sent = datetime.utcnow()
+
+    def set_text(self, text: str):
+        if len(text) == 0:
+            raise ValueError("Note text cannot be blank")
+        if len(text) > MAX_NOTE_LENGTH:
+            raise ValueError("Max note length exceeded")
+        self.text = text
 
 
 class FavoriteNote(db.Model):

@@ -3,10 +3,14 @@
 {% import "shared/macros.jinja" as macros %}
 {% import "shared/forms.jinja" as forms %}
 
-{% set friends_list_id = "friends-list" %}
 {% set self_public_profile_link_id = "self-public-profile-link" %}
 {% set copy_profile_link_btn_id = "copy-public-profile-link" %}
 {% set username_profile_cls = "username-profile" %}
+
+{% set friends_tabs_id = "friends-tabs" %}
+{% set my_friends_tab_id = "my-friends-tab" %}
+{% set outgoing_friend_requests_tab_id = "outgoing-requests-tab" %}
+{% set incoming_friend_requests_tab_id = "incoming-requests-tab" %}
 
 {% set danger_zone_id = "danger-zone" %}
 
@@ -38,10 +42,13 @@ My Profile
     <h5 class="card-header">Profile</h5>
     <div class="card-body">
       {% for accent, message in get_flashed_messages(with_categories=true) %}
-      <div class="alert alert-sm alert-{{ accent|e }} alert-dismissible fade show" role="alert">
+      <div
+        class="alert alert-sm alert-{{ accent|e }} alert-dismissible fade show"
+        role="alert"
+      >
         {{ message|e }}
         {% if accent == "success" %}
-        {{ macros.bs_close_btn("alert") }}
+        {{ macros.bs_close_btn(dismiss="alert") }}
         {% endif %}
       </div>
       {% endfor %}
@@ -60,38 +67,143 @@ My Profile
   </div>
   <div class="card mt-4">
     <h5 class="card-header">Friends</h5>
-    <ul class="list-group list-group-flush">
-      <li class="list-group-item">
-        <div>
-          My public profile:
-          <a id="{{ self_public_profile_link_id }}" href="{{ url_for('public_profile', username=logged_in_user.username) }}" class="{{ username_profile_cls }}">@{{ logged_in_user.username|e }}</a>
-          <button type="button" id="{{ copy_profile_link_btn_id }}" class="btn btn-sm btn-success ms-2">
-            <span id="{{ copy_profile_link_btn_id }}-text">
-              <i class="bi bi-clipboard"></i>
-              Copy Profile Link
-            </span>
-            <span id="{{ copy_profile_link_btn_id }}-copied" class="d-none">
-              <i class="bi bi-check"></i>
-              Copied!
-            </span>
+    <div class="card-body">
+      <div>
+        My public profile:
+        <a
+          id="{{ self_public_profile_link_id }}"
+          href="{{ url_for('public_profile', username=logged_in_user.username) }}"
+          class="{{ username_profile_cls }}"
+        >
+          @{{ logged_in_user.username|e }}
+        </a>
+        <button
+          type="button"
+          id="{{ copy_profile_link_btn_id }}"
+          class="btn btn-sm btn-success ms-2"
+        >
+          <span id="{{ copy_profile_link_btn_id }}-text">
+            <i class="bi bi-clipboard"></i>
+            Copy Profile Link
+          </span>
+          <span id="{{ copy_profile_link_btn_id }}-copied" class="d-none">
+            <i class="bi bi-check-lg"></i>
+            Copied!
+          </span>
+        </button>
+      </div>
+      <div class="mt-2">
+        To add a new friend, go to their public profile and click "Add
+        Friend"!
+      </div>
+      <ul id="{{ friends_tabs_id }}" class="nav nav-tabs mt-3" role="tablist">
+        <li class="nav-item" role="presentation">
+          <button
+            type="button"
+            id="{{ my_friends_tab_id }}"
+            class="nav-link active"
+            data-bs-toggle="tab"
+            data-bs-target="#{{ my_friends_tab_id }}-pane"
+            aria-controls="{{ my_friends_tab_id }}-pane"
+            aria-selected="true"
+            role="tab"
+          >
+            My Friends
           </button>
-        </div>
-        <div class="mt-2">
-          To add a new friend, go to their public profile and click "Add Friend"!
-        </div>
-      </li>
-      <li class="list-group-item py-3">
-        <div id="{{ friends_list_id }}" class="row row-cols-auto g-2">
-          <div class="placeholder-glow">
-            <span class="placeholder rounded" style="width: 100px;"></span>
-            <span class="placeholder rounded" style="width: 100px;"></span>
-            <span class="placeholder rounded" style="width: 100px;"></span>
-            <span class="placeholder rounded" style="width: 100px;"></span>
-            <span class="placeholder rounded" style="width: 100px;"></span>
+        </li>
+        <li class="nav-item" role="presentation">
+          <button
+            type="button"
+            id="{{ outgoing_friend_requests_tab_id }}"
+            class="nav-link"
+            data-bs-toggle="tab"
+            data-bs-target="#{{ outgoing_friend_requests_tab_id }}-pane"
+            aria-controls="{{ outgoing_friend_requests_tab_id }}-pane"
+            aria-selected="false"
+            role="tab"
+          >
+            Outgoing Friend Requests
+          </button>
+        </li>
+        <li class="nav-item" role="presentation">
+          <button
+            type="button"
+            id="{{ incoming_friend_requests_tab_id }}"
+            class="nav-link"
+            data-bs-toggle="tab"
+            data-bs-target="#{{ incoming_friend_requests_tab_id }}-pane"
+            aria-controls="{{ incoming_friend_requests_tab_id }}-pane"
+            aria-selected="false"
+            role="tab"
+          >
+            Incoming Friend Requests
+          </button>
+        </li>
+      </ul>
+      <div
+        id="{{ friends_tabs_id }}-content"
+        {# Add border around the bottom to make it look nicer #}
+        class="tab-content border border-top-0 rounded-bottom p-3"
+      >
+        <div
+          id="{{ my_friends_tab_id }}-pane"
+          class="tab-pane fade show active"
+          aria-labelledby="{{ my_friends_tab_id }}"
+          role="tabpanel"
+          tabindex="0"
+        >
+          <div id="{{ my_friends_tab_id }}-list" class="row row-cols-auto g-2">
+            <div class="placeholder-glow">
+              <span class="placeholder rounded" style="width: 100px;"></span>
+              <span class="placeholder rounded" style="width: 100px;"></span>
+              <span class="placeholder rounded" style="width: 100px;"></span>
+              <span class="placeholder rounded" style="width: 100px;"></span>
+              <span class="placeholder rounded" style="width: 100px;"></span>
+            </div>
           </div>
         </div>
-      </li>
-    </ul>
+        <div
+          id="{{ outgoing_friend_requests_tab_id }}-pane"
+          class="tab-pane fade"
+          aria-labelledby="{{ outgoing_friend_requests_tab_id }}"
+          role="tabpanel"
+          tabindex="0"
+        >
+          <div
+            id="{{ outgoing_friend_requests_tab_id }}-list"
+            class="row row-cols-auto g-2"
+          >
+            <div class="placeholder-glow">
+              <span class="placeholder rounded" style="width: 100px;"></span>
+              <span class="placeholder rounded" style="width: 100px;"></span>
+              <span class="placeholder rounded" style="width: 100px;"></span>
+              <span class="placeholder rounded" style="width: 100px;"></span>
+              <span class="placeholder rounded" style="width: 100px;"></span>
+            </div>
+          </div>
+        </div>
+        <div
+          id="{{ incoming_friend_requests_tab_id }}-pane"
+          class="tab-pane fade"
+          aria-labelledby="{{ incoming_friend_requests_tab_id }}"
+          role="tabpanel"
+          tabindex="0"
+        >
+          <div
+            id="{{ incoming_friend_requests_tab_id }}-list"
+            class="row row-cols-auto g-2"
+          >
+            <div class="placeholder-glow">
+              <span class="placeholder rounded" style="width: 100px;"></span>
+              <span class="placeholder rounded" style="width: 100px;"></span>
+              <span class="placeholder rounded" style="width: 100px;"></span>
+              <span class="placeholder rounded" style="width: 100px;"></span>
+              <span class="placeholder rounded" style="width: 100px;"></span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
   <div class="card mt-4 border-danger border-2">
     <h5 class="card-header text-bg-danger">Danger Zone</h5>
@@ -110,6 +222,35 @@ My Profile
 
 {% block script %}
 <script>
+  function populateUsernameLists(tabId, noUsernamesText) {
+    return (response, status, jqXHR) => {
+      const $list = $(`#${tabId}-list`);
+      $list.html("");
+      if (!response.success) {
+        $list.text(response.error).addClass("text-danger");
+        return;
+      }
+      const usernames = response.usernames;
+      $(`#${tabId}`).append(
+        $("<span>", { class: "badge text-bg-secondary" }).text(usernames.length)
+      );
+      if (usernames.length === 0) {
+        $list.append($("<div>", { class: "col" }).text(noUsernamesText));
+        return;
+      }
+      for (const username of usernames) {
+        $list.append(
+          $("<div>", { class: "col" }).append(
+            $("<a>", {
+              href: `{{ url_for('public_profile', username='') }}${username}`,
+              class: "{{ username_profile_cls }}",
+            }).text(`@${username}`)
+          )
+        );
+      }
+    };
+  }
+
   $(() => {
     $("#{{ copy_profile_link_btn_id }}").on("click", function (event) {
       const profilePath = $("#{{ self_public_profile_link_id }}").attr("href");
@@ -127,34 +268,24 @@ My Profile
       }, 3000);
     });
 
-    // When the page loads, fetch this user's friends
+    // When the page loads, fetch username lists
     ajaxRequest("GET", "{{ url_for('list_user_friends') }}", {
-      success: (response, status, jqXHR) => {
-        const $friendsList = $("#{{ friends_list_id }}");
-        if (!response.success) {
-          $friendsList.text(response.error).addClass("text-danger");
-          return;
-        }
-        // Clear the friends list
-        $friendsList.html("");
-        const friends = response.friends;
-        if (friends.length === 0) {
-          $friendsList.append(
-            $("<div>", { class: "col" }).text("No friends yet.")
-          );
-          return;
-        }
-        for (const username of friends) {
-          $friendsList.append(
-            $("<div>", { class: "col" }).append(
-              $("<a>", {
-                href: `{{ url_for('public_profile', username='') }}${username}`,
-                class: "{{ username_profile_cls }}",
-              }).text(`@${username}`)
-            )
-          );
-        }
-      },
+      success: populateUsernameLists(
+        "{{ my_friends_tab_id }}",
+        "No friends yet :("
+      ),
+    });
+    ajaxRequest("GET", "{{ url_for('list_user_outgoing_friend_requests') }}", {
+      success: populateUsernameLists(
+        "{{ outgoing_friend_requests_tab_id }}",
+        "No outgoing friend requests -- go make some friends!"
+      ),
+    });
+    ajaxRequest("GET", "{{ url_for('list_user_incoming_friend_requests') }}", {
+      success: populateUsernameLists(
+        "{{ incoming_friend_requests_tab_id }}",
+        "No incoming friend requests :("
+      ),
     });
 
     dismissSuccessAlerts();

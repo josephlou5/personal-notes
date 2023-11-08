@@ -19,6 +19,14 @@ $.fn.forEach = function (func) {
   return this.each((index, element) => func($(element), index));
 };
 
+$.fn.onEnterKeyPress = function (func) {
+  return this.on("keydown", function (event) {
+    if (event.key === "Enter") {
+      func(event, $(this));
+    }
+  });
+};
+
 function ajaxRequest(method, url, options = {}) {
   // Super thin wrapper around jQuery's `ajax` method.
   // `options.success` accepts args: (response, status, jqXHR)

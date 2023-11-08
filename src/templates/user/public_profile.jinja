@@ -1,0 +1,240 @@
+{% extends "shared/layout.jinja" %}
+
+{% import "shared/macros.jinja" as macros %}
+
+{% set remove_friend_btn_id = "remove-friend" %}
+{% set cancel_friend_request_btn_id = "cancel-friend-request" %}
+{% set accept_friend_request_btn_id = "accept-friend-request" %}
+{% set request_friend_btn_id = "request-friend" %}
+
+{% set nickname_input_id = "nickname" %}
+{% set set_nickname_btn_id = "request-friend" %}
+
+{% block title %}
+{{ user.display_name|e }} (@{{ user.username|e }})
+{% endblock %}
+
+{% block body %}
+<div id="public-profile-body" class="container-fluid body">
+  <div class="card">
+    <div class="card-header">
+      <div class="d-flex flex-nowrap">
+        <div class="flex-grow-1">
+          <div class="row align-items-end">
+            <div class="col-auto">
+              <span class="h4 text-break">{{ user_effective_name|e }}</span>
+            </div>
+            <div class="col-auto">@{{ user.username|e }}</div>
+          </div>
+        </div>
+        {% if user_is_logged_in %}
+        <div class="text-nowrap ms-3">
+          {% if is_self %}
+          <a
+            class="btn btn-sm btn-success"
+            href="{{ url_for('profile') }}"
+          >
+            Edit Profile
+          </a>
+          {% elif is_friend %}
+          <button
+            type="button"
+            class="btn btn-sm btn-danger"
+            data-bs-toggle="modal"
+            data-bs-target="#{{ remove_friend_btn_id }}-modal"
+          >
+            <i class="bi bi-person-dash-fill me-1"></i>
+            Remove Friend
+          </button>
+          {% elif friend_request_sent %}
+          <button
+            type="button"
+            id="{{ cancel_friend_request_btn_id }}"
+            class="btn btn-sm btn-danger"
+          >
+            <i class="bi bi-person-x-fill me-1"></i>
+            Cancel Request
+          </button>
+          {% elif friend_request_received %}
+          <button
+            type="button"
+            id="{{ accept_friend_request_btn_id }}"
+            class="btn btn-sm btn-info"
+          >
+            <i class="bi bi-person-check-fill me-1"></i>
+            Accept Request
+          </button>
+          {% else %}
+          <button
+            type="button"
+            id="{{ request_friend_btn_id }}"
+            class="btn btn-sm btn-success"
+          >
+            <i class="bi bi-person-plus-fill me-1"></i>
+            Request Friend
+          </button>
+          {% endif %}
+        </div>
+        {% endif %}
+      </div>
+    </div>
+    <div class="card-body">
+      <div>
+        <span class="fw-bold">Name:</span> {{ user.display_name|e }}
+      </div>
+      {% if is_friend %}
+      <div class="row mt-2">
+        <label class="col-auto col-form-label fw-bold">Nickname:</label>
+        <div class="col">
+          <input
+            type="text"
+            id="{{ nickname_input_id }}"
+            class="form-control d-inline"
+            placeholder="{{ user.display_name|e }}"
+            value="{{ friend_nickname }}"
+            minlength="1"
+            maxlength="100"
+          />
+        </div>
+        <div class="col-auto mt-1">
+          <button
+            type="button"
+            id="{{ set_nickname_btn_id }}"
+            class="btn btn-sm btn-success"
+          >
+            Save
+          </button>
+        </div>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% if user_is_logged_in and is_friend %}
+<div
+  id="{{ remove_friend_btn_id }}-modal"
+  class="modal fade"
+  tabindex="-1"
+  aria-labelledby="{{ remove_friend_btn_id }}-modal-title"
+  aria-hidden="true"
+>
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5
+          id="{{ remove_friend_btn_id }}-modal-title"
+          class="modal-title"
+        >
+          Remove friend?
+        </h5>
+        {{ macros.bs_close_btn(dismiss="modal") }}
+      </div>
+      <div class="modal-body">
+        Are you sure to want to stop being friends with
+        <span class="fw-semibold">@{{ user.username|e }}</span>? You will still
+        be able to see all previous notes you've sent to each other, but you
+        will need to request to be friends again to send notes again.
+      </div>
+      <div class="modal-footer">
+        <button
+          type="button"
+          class="btn btn-danger"
+          data-bs-dismiss="modal"
+          aria-label="Close"
+        >
+          Cancel
+        </button>
+        <button
+          type="button"
+          id="{{ remove_friend_btn_id }}"
+          class="btn btn-success"
+        >
+          Yes, I'm sure
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% if user_is_logged_in and not is_self %}
+{% block script %}
+<script>
+  $(() => {
+    {% if is_friend %}
+    $("#{{ remove_friend_btn_id }}").on("click", function (event) {
+      ajaxRequest("DELETE", "{{ url_for('update_friendship', user_id=user.id) }}", {
+        success: (response, status, jqXHR) => {
+          if (!response.success) {
+            // Errors are unlikely, and I'm a little lazy
+            window.alert(response.error);
+          }
+          // Reload the page to refresh
+          window.location.reload();
+        }
+      });
+    });
+
+    $("#{{ set_nickname_btn_id }}").on("click", function (event) {
+      const nickname = $("#{{ nickname_input_id }}").val();
+      ajaxRequest("POST", "{{ url_for('update_friend_nickname', user_id=user.id) }}", {
+        contentType: 'application/json',
+        data: JSON.stringify({ nickname }),
+        success: (response, status, jqXHR) => {
+          if (!response.success) {
+            // Errors are unlikely, and I'm a little lazy
+            window.alert(response.error);
+          }
+          // Reload the page to refresh
+          window.location.reload();
+        }
+      });
+    });
+    $("#{{ nickname_input_id }}").onEnterKeyPress(function (event) {
+      $("#{{ set_nickname_btn_id }}").trigger("click");
+    });
+    {% elif friend_request_sent %}
+    $("#{{ cancel_friend_request_btn_id }}").on("click", function (event) {
+      ajaxRequest("DELETE", "{{ url_for('update_friend_request', user_id=user.id) }}", {
+        success: (response, status, jqXHR) => {
+          if (!response.success) {
+            // Errors are unlikely, and I'm a little lazy
+            window.alert(response.error);
+          }
+          // Reload the page to refresh
+          window.location.reload();
+        }
+      });
+    });
+    {% elif friend_request_received %}
+    $("#{{ accept_friend_request_btn_id }}").on("click", function (event) {
+      ajaxRequest("POST", "{{ url_for('update_friendship', user_id=user.id) }}", {
+        success: (response, status, jqXHR) => {
+          if (!response.success) {
+            // Errors are unlikely, and I'm a little lazy
+            window.alert(response.error);
+          }
+          // Reload the page to refresh
+          window.location.reload();
+        }
+      })
+    });
+    {% else %}
+    $("#{{ request_friend_btn_id }}").on("click", function (event) {
+      ajaxRequest("POST", "{{ url_for('update_friend_request', user_id=user.id) }}", {
+        success: (response, status, jqXHR) => {
+          if (!response.success) {
+            // Errors are unlikely, and I'm a little lazy
+            window.alert(response.error);
+          }
+          // Reload the page to refresh
+          window.location.reload();
+        }
+      });
+    });
+    {% endif %}
+  });
+</script>
+{% endblock %}
+{% endif %}

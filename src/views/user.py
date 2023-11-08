@@ -5,6 +5,7 @@ Views for users.
 # =============================================================================
 
 from flask import flash, redirect, url_for
+from werkzeug.exceptions import NotFound
 
 import backend
 from forms.profile_form import ProfileForm
@@ -78,5 +79,42 @@ def profile():
 def public_profile(username):
     set_redirect_page()
 
-    # TODO
-    return f"Public profile for: {username}"
+    user = backend.user.get_by_username(username)
+    if user is None:
+        raise NotFound()
+
+    is_self = False
+    user_effective_name = user.display_name
+    is_friend = False
+    friend_request_sent = False
+    friend_request_received = False
+    friend_nickname = ""
+
+    # Check if logged in user is friends with user
+    session_user = get_logged_in_user()
+    if session_user is not None:
+        session_user_id = session_user["id"]
+        if session_user_id == user.id:
+            is_self = True
+        elif backend.friend.are_friends(session_user_id, user.id):
+            is_friend = True
+            friend_nickname = backend.friend.get_nickname(
+                session_user_id, user.id
+            )
+            if len(friend_nickname) > 0:
+                user_effective_name = friend_nickname
+        elif backend.friend.has_sent_request(session_user_id, user.id):
+            friend_request_sent = True
+        elif backend.friend.has_sent_request(user.id, session_user_id):
+            friend_request_received = True
+
+    return _render(
+        "user/public_profile.jinja",
+        user=user,
+        is_self=is_self,
+        user_effective_name=user_effective_name,
+        is_friend=is_friend,
+        friend_request_sent=friend_request_sent,
+        friend_request_received=friend_request_received,
+        friend_nickname=friend_nickname,
+    )
