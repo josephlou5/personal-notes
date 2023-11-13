@@ -164,74 +164,94 @@
   $(() => {
     {% if is_friend %}
     $("#{{ remove_friend_btn_id }}").on("click", function (event) {
-      ajaxRequest("DELETE", "{{ url_for('update_friendship', user_id=user.id) }}", {
-        success: (response, status, jqXHR) => {
-          if (!response.success) {
-            // Errors are unlikely, and I'm a little lazy
-            window.alert(response.error);
-          }
-          // Reload the page to refresh
-          window.location.reload();
+      ajaxRequest(
+        "DELETE",
+        "{{ url_for('update_friendship', user_id=user.id) }}",
+        {
+          success: (response, status, jqXHR) => {
+            if (!response.success) {
+              // Errors are unlikely, and I'm a little lazy
+              window.alert(response.error);
+            }
+            // Reload the page to refresh
+            window.location.reload();
+          },
         }
-      });
+      );
     });
 
     $("#{{ set_nickname_btn_id }}").on("click", function (event) {
       const nickname = $("#{{ nickname_input_id }}").val();
-      ajaxRequest("POST", "{{ url_for('update_friend_nickname', user_id=user.id) }}", {
-        contentType: 'application/json',
-        data: JSON.stringify({ nickname }),
-        success: (response, status, jqXHR) => {
-          if (!response.success) {
-            // Errors are unlikely, and I'm a little lazy
-            window.alert(response.error);
-          }
-          // Reload the page to refresh
-          window.location.reload();
+      ajaxRequest(
+        "POST",
+        "{{ url_for('update_friend_nickname', user_id=user.id) }}",
+        {
+          contentType: "application/json",
+          data: JSON.stringify({ nickname }),
+          success: (response, status, jqXHR) => {
+            if (!response.success) {
+              // Errors are unlikely, and I'm a little lazy
+              window.alert(response.error);
+            }
+            // Reload the page to refresh
+            window.location.reload();
+          },
         }
-      });
+      );
     });
     $("#{{ nickname_input_id }}").onEnterKeyPress(function (event) {
       $("#{{ set_nickname_btn_id }}").trigger("click");
     });
     {% elif friend_request_sent %}
     $("#{{ cancel_friend_request_btn_id }}").on("click", function (event) {
-      ajaxRequest("DELETE", "{{ url_for('update_friend_request', user_id=user.id) }}", {
-        success: (response, status, jqXHR) => {
-          if (!response.success) {
-            // Errors are unlikely, and I'm a little lazy
-            window.alert(response.error);
-          }
-          // Reload the page to refresh
-          window.location.reload();
+      ajaxRequest(
+        "DELETE",
+        "{{ url_for('update_friend_request', user_id=user.id) }}",
+        {
+          success: (response, status, jqXHR) => {
+            if (!response.success) {
+              // Errors are unlikely, and I'm a little lazy
+              window.alert(response.error);
+            }
+            // Reload the page to refresh
+            window.location.reload();
+          },
         }
-      });
+      );
     });
     {% elif friend_request_received %}
     $("#{{ accept_friend_request_btn_id }}").on("click", function (event) {
-      ajaxRequest("POST", "{{ url_for('update_friendship', user_id=user.id) }}", {
-        success: (response, status, jqXHR) => {
-          if (!response.success) {
-            // Errors are unlikely, and I'm a little lazy
-            window.alert(response.error);
-          }
-          // Reload the page to refresh
-          window.location.reload();
+      ajaxRequest(
+        "POST",
+        "{{ url_for('update_friendship', user_id=user.id) }}",
+        {
+          success: (response, status, jqXHR) => {
+            if (!response.success) {
+              // Errors are unlikely, and I'm a little lazy
+              window.alert(response.error);
+            }
+            // Reload the page to refresh
+            window.location.reload();
+          },
         }
-      })
+      );
     });
     {% else %}
     $("#{{ request_friend_btn_id }}").on("click", function (event) {
-      ajaxRequest("POST", "{{ url_for('update_friend_request', user_id=user.id) }}", {
-        success: (response, status, jqXHR) => {
-          if (!response.success) {
-            // Errors are unlikely, and I'm a little lazy
-            window.alert(response.error);
-          }
-          // Reload the page to refresh
-          window.location.reload();
+      ajaxRequest(
+        "POST",
+        "{{ url_for('update_friend_request', user_id=user.id) }}",
+        {
+          success: (response, status, jqXHR) => {
+            if (!response.success) {
+              // Errors are unlikely, and I'm a little lazy
+              window.alert(response.error);
+            }
+            // Reload the page to refresh
+            window.location.reload();
+          },
         }
-      });
+      );
     });
     {% endif %}
   });
