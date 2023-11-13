@@ -39,6 +39,34 @@ function ajaxRequest(method, url, options = {}) {
  * Bootstrap                                                                  *
  ******************************************************************************/
 
+/** Creates a Bootstrap close button. */
+function bsCloseBtn({ dismiss }) {
+  return $("<button>", {
+    "type": "button",
+    "class": "btn-close",
+    "data-bs-dismiss": dismiss,
+    "aria-label": "Close",
+  });
+}
+
+/** Creates a Bootstrap alert with the given error message. */
+function bsErrorAlert(
+  message,
+  { classes: extraClasses = "", dismissible = true } = {}
+) {
+  const classes = ["alert", "alert-danger"];
+  if (dismissible) {
+    classes.push("alert-dismissible", "fade", "show");
+  }
+  if (extraClasses) {
+    classes.push(extraClasses);
+  }
+  return $("<div>", { class: classes.join(" "), role: "alert" }).append(
+    $("<span>").text(message),
+    bsCloseBtn({ dismiss: "alert" })
+  );
+}
+
 /** Dismisses all the ".alert-success" elements after the given time. */
 function dismissSuccessAlerts(seconds = 10) {
   setTimeout(() => {
@@ -47,4 +75,64 @@ function dismissSuccessAlerts(seconds = 10) {
       $alert.find(".btn-close").trigger("click");
     });
   }, seconds * 1000);
+}
+
+/******************************************************************************
+ * Markdown                                                                   *
+ ******************************************************************************/
+
+/**
+ * Initializes the `js-emoji` library.
+ *
+ * This is pretty hacky.
+ */
+function initEmoji() {
+  // Support interchangeable underscores and hyphens
+  for (const emojiData of Object.values(EmojiConvertor.prototype.data)) {
+    if (emojiData.length < 3) continue;
+    const codes = emojiData[3];
+    if (!Array.isArray(codes)) continue;
+    const codesSet = new Set();
+    for (const code of codes) {
+      codesSet.add(code);
+      codesSet.add(code.replaceAll("_", "-"));
+      codesSet.add(code.replaceAll("-", "_"));
+    }
+    // Replace the contents with the converted codes
+    codes.splice(0, codes.length, ...codesSet);
+  }
+
+  // It's possible to convert all typed emojis into colon syntax with the
+  // following code. However, it doesn't work well with a max length limit
+  // (users' entered text may turn out to be too long, which isn't in their
+  // control), and converting emojis as they type would result in their cursor
+  // bouncing around, which isn't great either. It will *probably* be fine to
+  // leave them as is.
+  //   const emoji = new EmojiConvertor();
+  //   emoji.colons_mode = true;
+  //   const converted = emoji.replace_unified(context);
+}
+
+/**
+ * Parses the given raw Markdown text, converting emojis and outputting the
+ * resulting HTML.
+ *
+ * Expects the template to have `include_markdown = True` so that `Marked`,
+ * `DOMPurify`, and `js-emoji` are loaded in the page.
+ * @param {string} content
+ * @returns {string}
+ */
+function parseMarkdown(content) {
+  const emoji = new EmojiConvertor();
+  emoji.replace_mode = "unified";
+  // Replace emojis, remove common zero-width characters from the start, and
+  // sanitize
+  return DOMPurify.sanitize(
+    marked.parse(
+      emoji.replace_colons(
+        content.replace(/^[\u200B\u200C\u200D\u200E\u200F\uFEFF]/, "")
+      )
+    ),
+    { USE_PROFILES: { html: true } }
+  );
 }

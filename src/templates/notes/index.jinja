@@ -1,0 +1,99 @@
+{% extends "shared/layout.jinja" %}
+
+{% set notes_tabs_id = "notes-tabs" %}
+{% set all_notes_tab_id = "all-notes-tab" %}
+{% set drafts_tab_id = "drafts-tab" %}
+
+{% block title %}
+My Notes
+{% endblock %}
+
+{% block style %}
+<style>
+  #{{ notes_tabs_id }}-content > * > * {
+    /* Add spacing between cards */
+    margin-top: 2rem;
+  }
+</style>
+{% endblock %}
+
+{% block body %}
+<div id="notes-body" class="container-fluid body">
+  <div class="row">
+    <div class="col">
+      <h2>My Notes</h2>
+    </div>
+    <div class="col-auto">
+      <a href="{{ url_for('create_note') }}" class="text-reset">
+        <i class="bi bi-pencil-square fs-4"></i>
+      </a>
+    </div>
+  </div>
+  <ul
+    id="{{ notes_tabs_id }}"
+    class="nav nav-underline nav-fill"
+    role="tablist"
+  >
+    <li class="nav-item" role="presentation">
+      <button
+        type="button"
+        id="{{ all_notes_tab_id }}"
+        class="nav-link active"
+        data-bs-toggle="tab"
+        data-bs-target="#{{ all_notes_tab_id }}-pane"
+        aria-controls="{{ all_notes_tab_id }}-pane"
+        aria-selected="true"
+        role="tab"
+      >
+        All Notes
+      </button>
+    </li>
+    <li class="nav-item" role="presentation">
+      <button
+        type="button"
+        id="{{ drafts_tab_id }}"
+        class="nav-link"
+        data-bs-toggle="tab"
+        data-bs-target="#{{ drafts_tab_id }}-pane"
+        aria-controls="{{ drafts_tab_id }}-pane"
+        aria-selected="false"
+        role="tab"
+      >
+        Drafts
+      </button>
+    </li>
+  </ul>
+  <div id="{{ notes_tabs_id }}-content" class="tab-content">
+    {% for tab_id in [all_notes_tab_id, drafts_tab_id] %}
+    <div
+      id="{{ tab_id }}-pane"
+      class="tab-pane fade {{ 'show active' if loop.first }}"
+      aria-labelledby="{{ tab_id }}"
+      role="tabpanel"
+      tabindex="0"
+    >
+      {% for _ in range(4) %}
+      <div class="card placeholder-glow">
+        <div class="card-header">
+          <span class="placeholder rounded" style="width: 200px;"></span>
+        </div>
+        <div class="card-body">
+          <span class="placeholder rounded" style="width: 150px;"></span>
+          <span class="placeholder rounded" style="width: 100px;"></span>
+          <span class="placeholder rounded" style="width: 200px;"></span>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    {% endfor %}
+  </div>
+</div>
+{% endblock %}
+
+{% block script %}
+<script>
+  $(() => {
+    // Page does nothing for now
+  });
+</script>
+{% endblock %}

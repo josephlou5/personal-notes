@@ -33,7 +33,7 @@ def get_by_username(username: str) -> Optional[User]:
 def create(email: str, username: str, display_name: str) -> User:
     """Creates the user with the given info.
 
-    Errors are raised if the args were invalid in any way.
+    Errors are raised if the args are invalid in any way.
     """
     user = User(email, username, display_name)
 
@@ -48,19 +48,19 @@ def create(email: str, username: str, display_name: str) -> User:
 def edit(user: User, username: str, display_name: str) -> User:
     """Edits the user with the given info.
 
-    Errors are raised if the args were invalid in any way.
+    Errors are raised if the args are invalid in any way.
     """
     changed = False
 
     if username != user.username:
         if _exists(User, User.username == username):
             raise ValueError(f'Username "{username}" is already taken')
-        changed = True
         user.set_username(username)
+        changed = True
 
     if display_name != user.display_name:
-        changed = True
         user.set_display_name(display_name)
+        changed = True
 
     if changed:
         db.session.commit()

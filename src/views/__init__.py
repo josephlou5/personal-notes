@@ -4,7 +4,7 @@ All the views for the app.
 
 # =============================================================================
 
-from views import api, auth, shared, user
+from views import api, auth, notes, shared, user
 
 # =============================================================================
 
@@ -17,5 +17,6 @@ def register_all(app):
         auth,
         api,
         user,
+        notes,
     ):
         module.app.register(app)

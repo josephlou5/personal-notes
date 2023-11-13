@@ -1,8 +1,11 @@
 {# Shared macros #}
 
-{% macro bs_close_btn(dismiss) %}
+{% macro bs_close_btn(dismiss, id=none) %}
 <button
   type="button"
+  {% if id is not none %}
+  id="{{ id }}"
+  {% endif %}
   class="btn-close"
   data-bs-dismiss="{{ dismiss }}"
   aria-label="Close"

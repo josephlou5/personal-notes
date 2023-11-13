@@ -6,7 +6,7 @@ Helper methods for friendships, friend requests, and friend nicknames.
 
 from typing import List, Optional
 
-from sqlalchemy import and_, select, union
+from sqlalchemy import and_, select
 
 from backend._utils import query
 from backend.models import FriendNickname, FriendRequest, Friendship, User, db
@@ -14,25 +14,47 @@ from backend.models import FriendNickname, FriendRequest, Friendship, User, db
 # =============================================================================
 
 
-def get_friend_usernames(user_id: int) -> List[str]:
-    """Returns the usernames of the requested user's friends.
+def get_all(user_id: int) -> List[User]:
+    """Returns the requested user's friends.
 
-    The usernames will be sorted alphabetically.
+    The users will be sorted by username alphabetically.
     """
-    return sorted(
-        db.session.scalars(
-            union(
-                select(User.username)
-                .select_from(Friendship)
-                .join(User, User.id == Friendship.user2_id)
-                .where(Friendship.user1_id == user_id),
-                select(User.username)
-                .select_from(Friendship)
-                .join(User, User.id == Friendship.user1_id)
-                .where(Friendship.user2_id == user_id),
+    # Split into two queries because otherwise `User` instances will not
+    # be returned
+    users_with_nicknames = (
+        db.session.execute(
+            select(User, FriendNickname.nickname)
+            .select_from(Friendship)
+            .join(User, User.id == Friendship.user2_id)
+            .outerjoin(
+                FriendNickname,
+                and_(
+                    FriendNickname.user_id == user_id,
+                    FriendNickname.friend_id == User.id,
+                ),
             )
+            .where(Friendship.user1_id == user_id)
+        ).all()
+        + db.session.execute(
+            select(User, FriendNickname.nickname)
+            .select_from(Friendship)
+            .join(User, User.id == Friendship.user1_id)
+            .outerjoin(
+                FriendNickname,
+                and_(
+                    FriendNickname.user_id == user_id,
+                    FriendNickname.friend_id == User.id,
+                ),
+            )
+            .where(Friendship.user2_id == user_id)
         ).all()
     )
+    users = []
+    for user, nickname in users_with_nicknames:
+        if nickname:
+            user.set_nickname(nickname)
+        users.append(user)
+    return sorted(users, key=lambda u: u.username)
 
 
 def _get_friendship(user1_id: int, user2_id: int) -> Optional[Friendship]:
@@ -69,33 +91,35 @@ def remove(user1_id: int, user2_id: int):
 # =============================================================================
 
 
-def get_outgoing_friend_requests(user_id: int) -> List[str]:
-    """Returns the usernames of the user's outgoing friend requests.
+def get_outgoing_friend_requests(user_id: int) -> List[User]:
+    """Returns the recipients of the user's outgoing friend requests.
 
-    The usernames will be sorted alphabetically.
+    The users will be sorted by username alphabetically.
     """
     return sorted(
-        db.session.scalars(
-            select(User.username)
-            .select_from(FriendRequest)
-            .join(User, User.id == FriendRequest.recipient_id)
-            .where(FriendRequest.sender_id == user_id)
-        ).all()
+        (
+            request.recipient
+            for request in query(
+                FriendRequest, FriendRequest.sender_id == user_id
+            ).all()
+        ),
+        key=lambda u: u.username,
     )
 
 
-def get_incoming_friend_requests(user_id: int) -> List[str]:
-    """Returns the usernames of the user's incoming friend requests.
+def get_incoming_friend_requests(user_id: int) -> List[User]:
+    """Returns the senders of the user's incoming friend requests.
 
-    The usernames will be sorted alphabetically.
+    The users will be sorted by username alphabetically.
     """
     return sorted(
-        db.session.scalars(
-            select(User.username)
-            .select_from(FriendRequest)
-            .join(User, User.id == FriendRequest.sender_id)
-            .where(FriendRequest.recipient_id == user_id)
-        ).all()
+        (
+            request.sender
+            for request in query(
+                FriendRequest, FriendRequest.recipient_id == user_id
+            ).all()
+        ),
+        key=lambda u: u.username,
     )
 
 

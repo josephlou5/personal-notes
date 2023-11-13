@@ -30,7 +30,7 @@ __all__ = (
 
 def redirect_last(force_default=False):
     """Redirects to the redirect page."""
-    default_uri = url_for("index")
+    default_uri = url_for("notes" if is_logged_in() else "index")
     if force_default:
         redirect_uri = default_uri
     else:

@@ -1,0 +1,678 @@
+{% extends "shared/layout.jinja" %}
+
+{% import "shared/macros.jinja" as macros %}
+
+{% set is_draft = draft is not none %}
+
+{% set title = "Edit Draft Note" if is_draft else "Create Note" %}
+
+{% set notes_help_id = "notes-help" %}
+{% set help_example_cls = "help-example" %}
+
+{% set error_container_id = "errors" %}
+
+{% set recipient_input_id = "recipient" %}
+{% set recipients_showing_id = "recipients-showing" %}
+{% set recipient_option_cls = "recipient-option" %}
+{% set content_input_id = "content" %}
+{% set preview_id = "preview" %}
+{% set cancel_btn_id = "cancel" %}
+{% set delete_btn_id = "delete" %}
+{% set save_btn_id = "save" %}
+{% set send_btn_id = "send" %}
+
+{% block title %}
+{{ title }}
+{% endblock %}
+
+{% block style %}
+<style>
+  @media (max-width: 599.98px) {
+    /* Less than 600px */
+    #{{ notes_help_id }} {
+      width: 100%;
+    }
+  }
+  @media (min-width: 600px) {
+    /* More than 600px */
+    #{{ notes_help_id }} {
+      min-width: 600px;
+    }
+  }
+  .{{ help_example_cls }} {
+    /* Same as ".border.rounded" with some extra padding */
+    border: var(--bs-border-width) var(--bs-border-style) var(--bs-border-color);
+    border-radius: var(--bs-border-radius);
+    padding: 1px 5px;
+  }
+
+  #{{ recipient_input_id }}-group.showing-options > * {
+    /* Remove bottom radius when the options dropdown is showing */
+    border-bottom-left-radius: 0;
+    border-bottom-right-radius: 0;
+  }
+  #{{ recipient_input_id }}-options > .list-group-item {
+    /* y-padding is halved */
+    --bs-list-group-item-padding-y: 0.25rem;
+  }
+  #{{ recipient_input_id }}-options > :nth-last-child(1 of :not(.d-none)) {
+    border-bottom-left-radius: var(--bs-border-radius);
+    border-bottom-right-radius: var(--bs-border-radius);
+  }
+
+  #{{ preview_id }} {
+    padding: 0.75rem;
+  }
+  #{{ preview_id }} > p {
+    margin-bottom: 0.5rem;
+  }
+  #{{ preview_id }} > :last-child {
+    margin-bottom: 0;
+  }
+
+  #{{ cancel_btn_id }}:hover {
+    --bs-btn-hover-bg: var(--bs-danger-bg-subtle);
+  }
+</style>
+{% endblock %}
+
+{% block body %}
+<div
+  id="{{ notes_help_id }}"
+  class="offcanvas offcanvas-end"
+  data-bs-scroll="true"
+  aria-labelledby="{{ notes_help_id }}-label"
+  tabindex="-1"
+>
+  <div class="offcanvas-header">
+    <h4 id="{{ notes_help_id }}-label" class="offcanvas-title">Notes Help</h4>
+    {{ macros.bs_close_btn(dismiss="offcanvas") }}
+  </div>
+  <div class="offcanvas-body">
+    <p>The content of a note supports Markdown and emojis!</p>
+    <p>
+      For information on Markdown, please see this
+      <a href="https://www.markdownguide.org/cheat-sheet/" target="_blank"
+        >Markdown Cheat Sheet</a>.
+    </p>
+    <p>
+      To type an emoji, you can type a regular emoji from your keyboard, or use
+      the <code>:colon:</code> syntax. For example,
+      <span class="{{ help_example_cls }}">:smile:</span> will translate to
+      <span class="{{ help_example_cls }}">😄</span>. Watch the preview section
+      to see converted emojis! Although I don't have a list of all the supported
+      emoji codes, you will probably be able to add anything you want. If that
+      doesn't work, simply type the emoji itself!
+    </p>
+    <p>
+      Also note that due to Markdown being supported, some special characters
+      (such as asterisks) must be escaped with a preceding backslash in order to
+      get the plain character. For example,
+      <span class="{{ help_example_cls }}">*hello*</span> in the text box will
+      result in <span class="{{ help_example_cls }} fst-italic">hello</span>,
+      while <span class="{{ help_example_cls }}">\*hello\*</span> will result in
+      <span class="{{ help_example_cls }}">*hello*</span>.
+    </p>
+  </div>
+</div>
+
+{% if is_draft %}
+<div
+  id="{{ delete_btn_id }}-modal"
+  class="modal fade"
+  tabindex="-1"
+  aria-labelledby="{{ delete_btn_id }}-modal-title"
+  aria-hidden="true"
+>
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 id="{{ delete_btn_id }}-modal-title" class="modal-title">
+          Delete draft?
+        </h5>
+        {{ macros.bs_close_btn(dismiss="modal", id=(delete_btn_id ~ "-close"))
+        }}
+      </div>
+      <div class="modal-body">
+        Are you sure you want to delete this draft? It cannot be recovered.
+      </div>
+      <div class="modal-footer">
+        <button
+          type="button"
+          class="btn btn-success"
+          data-bs-dismiss="modal"
+          aria-label="Close"
+        >
+          Cancel
+        </button>
+        <button
+          type="button"
+          id="{{ delete_btn_id }}"
+          class="btn btn-danger"
+        >
+          Yes, Delete
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+{% endif %}
+<div
+  id="{{ send_btn_id }}-modal"
+  class="modal fade"
+  tabindex="-1"
+  aria-labelledby="{{ send_btn_id }}-modal-title"
+  aria-hidden="true"
+>
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 id="{{ send_btn_id }}-modal-title" class="modal-title">
+          Send Note?
+        </h5>
+        {{ macros.bs_close_btn(dismiss="modal", id=(send_btn_id ~ "-close")) }}
+      </div>
+      <div class="modal-body">
+        Are you sure you want to send this note? Check the preview to see how
+        the recipient will see it. You will not be able to edit the content
+        again.
+      </div>
+      <div class="modal-footer">
+        <button
+          type="button"
+          class="btn btn-danger"
+          data-bs-dismiss="modal"
+          aria-label="Close"
+        >
+          Cancel
+        </button>
+        <button
+          type="button"
+          id="{{ send_btn_id }}"
+          class="btn btn-success"
+        >
+          Send
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="create-note-body" class="container-fluid body">
+  <div id="{{ error_container_id }}"></div>
+  <div class="card">
+    <div class="card-header d-flex align-items-center">
+      <h5 class="flex-grow-1 mb-0">{{ title }}</h5>
+      {% if is_draft %}
+      <button
+        type="button"
+        class="btn btn-sm btn-danger me-2"
+        data-bs-toggle="modal"
+        data-bs-target="#{{ delete_btn_id }}-modal"
+      >
+        <i class="bi bi-trash"></i>
+      </button>
+      {% endif %}
+      <div
+        data-bs-toggle="offcanvas"
+        data-bs-target="#{{ notes_help_id }}"
+        aria-controls="{{ notes_help_id }}"
+        role="button"
+      >
+        <i class="bi bi-question-circle"></i>
+      </div>
+    </div>
+    <div class="card-body">
+      {% for accent, message in get_flashed_messages(with_categories=true) %}
+      <div
+        class="alert alert-sm alert-{{ accent|e }} alert-dismissible fade show"
+        role="alert"
+      >
+        {{ message|e }}
+        {% if accent == "success" %}
+        {{ macros.bs_close_btn(dismiss="alert") }}
+        {% endif %}
+      </div>
+      {% endfor %}
+      {# Construct a manual ".row" so that `.position-absolute.w-100` works
+         (`.col` uses padding, which messes up the full width of the absolute
+         options element)
+       #}
+      <div class="d-flex justify-content-between mb-3">
+        <label for="{{ recipient_input_id }}" class="col-form-label">To</label>
+        <div class="flex-grow-1 position-relative ms-4">
+          <div
+            id="{{ recipient_input_id }}-group"
+            class="input-group has-validation"
+          >
+            <span class="input-group-text">@</span>
+            <input
+              type="text"
+              id="{{ recipient_input_id }}"
+              class="form-control"
+              placeholder="Recipient"
+              {% if is_draft and draft.recipient_id is not none %}
+              {% with recipient_username = draft.recipient.username %}
+              value="{{ recipient_username|e }}"
+              recipient-id="{{ recipient_username|e }}"
+              {% endwith %}
+              {% else %}
+              value=""
+              {% endif %}
+            />
+            <div class="invalid-feedback">Unrecognized friend.</div>
+          </div>
+          <div
+            id="{{ recipient_input_id }}-options"
+            class="list-group position-absolute rounded-top-0 w-100 d-none"
+            style="margin-top: -1px;"
+          >
+            <div
+              id="{{ recipients_showing_id }}-text"
+              class="list-group-item list-group-item-secondary"
+              style="font-size: 0.9rem;"
+            ></div>
+          </div>
+        </div>
+      </div>
+      <div class="mb-3">
+        <textarea
+          id="{{ content_input_id }}"
+          class="form-control"
+          rows="10"
+          placeholder="Note text here!"
+        >{{ draft.text|e if is_draft }}</textarea>
+      </div>
+      <div class="mb-3">
+        <div class="fw-semibold mb-2">Preview</div>
+        <div id="{{ preview_id }}" class="border rounded"></div>
+      </div>
+      <div class="row">
+        <div class="col">
+          <a
+            id="{{ cancel_btn_id }}"
+            href="{{ url_for('notes') }}"
+            class="btn text-danger"
+          >
+            Cancel
+          </a>
+        </div>
+        <div class="col-auto">
+          <button type="button" id="{{ save_btn_id }}" class="btn btn-primary">
+            Save
+          </button>
+          <button
+            type="button"
+            id="{{ send_btn_id }}-trigger"
+            class="btn btn-success"
+            data-bs-toggle="modal"
+            data-bs-target="#{{ send_btn_id }}-modal"
+          >
+            Send
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block script %}
+<script>
+  function checkButtonsDisabled() {
+    let saveDisabled = false;
+    let sendDisabled = false;
+
+    const $recipientInput = $("#{{ recipient_input_id }}");
+    const $textInput = $("#{{ content_input_id }}");
+
+    if ($recipientInput.prop("disabled")) {
+      sendDisabled = true;
+    } else if ($recipientInput.hasClass("is-invalid")) {
+      saveDisabled = true;
+      sendDisabled = true;
+    } else if (!$recipientInput.attr("recipient-id")) {
+      if ($recipientInput.val()) {
+        // There's content in the input, but not a valid recipient yet
+        // This case happens while a user is typing in the input; ".is-invalid"
+        // doesn't get attached until the user clicks away
+        saveDisabled = true;
+      }
+      sendDisabled = true;
+    }
+    if (!$textInput.val()) {
+      sendDisabled = true;
+    }
+
+    $("#{{ save_btn_id }}").prop("disabled", saveDisabled);
+    $("#{{ send_btn_id }}-trigger,#{{ send_btn_id }}").prop(
+      "disabled",
+      sendDisabled
+    );
+  }
+
+  function initRecipientDropdown(friends) {
+    const $group = $("#{{ recipient_input_id }}-group");
+    const $input = $("#{{ recipient_input_id }}");
+    const $options = $("#{{ recipient_input_id }}-options");
+
+    if (friends.length === 0) {
+      $input.val("No friends yet :(");
+      $input.prop("disabled", true);
+      $input.addClass("text-danger");
+      checkButtonsDisabled();
+      return;
+    }
+
+    const s = friends.length === 1 ? "" : "s";
+    $("#{{ recipients_showing_id }}-text").append(
+      "Showing ",
+      $("<span>", { id: "{{ recipients_showing_id }}" }),
+      ` of ${friends.length} friend${s}`
+    );
+
+    // Add all the recipient options
+    $options.append(
+      friends.map(({ id, username, displayName, nickname }) =>
+        $("<div>", {
+          "class":
+            "list-group-item list-group-item-action {{ recipient_option_cls }}",
+          "user-id": id,
+          "username": username,
+        }).append(
+          $("<div>", { style: "font-size: 1.1rem;" }).text(
+            nickname || displayName
+          ),
+          $("<div>", { class: "{{ recipient_option_cls }}-username" }).text(
+            `@${username}`
+          )
+        )
+      )
+    );
+
+    // Set up the handlers
+    let $currentlyActive = null;
+
+    function setActive($option = null) {
+      $input.removeAttr("recipient-id");
+      if ($currentlyActive != null) {
+        $currentlyActive.removeClass("active");
+      }
+      if ($option == null || $option.length === 0) {
+        $currentlyActive = null;
+      } else {
+        $option.addClass("active");
+        $currentlyActive = $option;
+        $input.val($option.attr("username"));
+        $input.attr("recipient-id", $option.attr("user-id"));
+      }
+      checkButtonsDisabled();
+    }
+
+    function refreshFilteredList() {
+      const value = $input.val();
+      if (
+        $currentlyActive != null &&
+        $currentlyActive.attr("username") !== value
+      ) {
+        setActive(null);
+      }
+
+      const matched = [];
+      const unmatched = [];
+      $(".{{ recipient_option_cls }}[username]").forEach(($option) => {
+        $option.removeClass("d-none");
+        const $optionUsername = $option
+          .find(".{{ recipient_option_cls }}-username")
+          .first();
+        const username = $option.attr("username");
+        if (username === value) {
+          setActive($option);
+        }
+        const index = username.indexOf(value);
+        if (index === -1) {
+          $optionUsername.text(`@${username}`);
+          unmatched.push($option);
+          return;
+        }
+        matched.push({ index, username, $option });
+        // Highlight the matched part
+        $optionUsername
+          .html("")
+          .append(
+            "@",
+            username.slice(0, index),
+            $("<span>", { class: "fw-bold" }).text(value),
+            username.slice(index + value.length)
+          );
+      });
+
+      // Sort by index and username and append back to the options
+      matched.sort((a, b) => {
+        let cmp = a.index - b.index;
+        if (cmp === 0) {
+          cmp = a.username.localeCompare(b.username);
+        }
+        return cmp;
+      });
+      for (const { $option } of matched) {
+        $options.append($option);
+      }
+      for (const $option of unmatched) {
+        $option.addClass("d-none");
+        $options.append($option);
+      }
+
+      $("#{{ recipients_showing_id }}").text(
+        $(".{{ recipient_option_cls }}:not(.d-none)").length
+      );
+
+      checkButtonsDisabled();
+    }
+
+    $input.on({
+      focus: function (event) {
+        $input.removeClass("is-invalid");
+        // Show options
+        $options.removeClass("d-none");
+        $group.addClass("showing-options");
+      },
+      blur: function (event) {
+        // Hide options
+        $options.addClass("d-none");
+        $group.removeClass("showing-options");
+        // Validate the value
+        const value = $input.val();
+        if (
+          value &&
+          $(`.{{ recipient_option_cls }}[username="${value}"]`).length === 0
+        ) {
+          $input.addClass("is-invalid");
+        }
+        checkButtonsDisabled();
+      },
+      keydown: function (event) {
+        const key = event.key;
+        const validOptionSelector = ".{{ recipient_option_cls }}:not(.d-none)";
+        if (key === "ArrowDown") {
+          event.preventDefault();
+          // Select the next element
+          let $next = null;
+          if ($currentlyActive != null) {
+            let $nextUntil = $currentlyActive
+              .nextUntil(validOptionSelector)
+              .last();
+            if ($nextUntil.length === 0) {
+              // Either no next sibling, or the match was the next sibling
+              $nextUntil = $currentlyActive;
+            }
+            $next = $nextUntil.next();
+          }
+          if ($next == null || $next.length === 0) {
+            // Fallback or wraparound to the first option
+            $next = $(validOptionSelector).first();
+          }
+          setActive($next);
+        } else if (key === "ArrowUp") {
+          event.preventDefault();
+          // Select the previous element
+          let $prev = null;
+          if ($currentlyActive != null) {
+            let $prevUntil = $currentlyActive
+              .prevUntil(validOptionSelector)
+              .last();
+            if ($prevUntil.length === 0) {
+              // Either no prev sibling, or the match was the prev sibling
+              $prevUntil = $currentlyActive;
+            }
+            $prev = $prevUntil.prev();
+          }
+          if ($prev == null || $prev.length === 0) {
+            // Fallback or wraparound to the last option
+            $prev = $(validOptionSelector).last();
+          }
+          setActive($prev);
+        } else if (key === "Enter" || key === "Escape") {
+          event.preventDefault();
+          // Unfocus the input
+          $(this).trigger("blur");
+        }
+      },
+      input: function (event) {
+        refreshFilteredList();
+      },
+    });
+    $("#{{ recipient_input_id }}-options").on("mousedown", function (event) {
+      // When the user clicks anywhere on the options element, don't let the
+      // input lose focus
+      if ($input.is(":focus")) {
+        event.preventDefault();
+      }
+    });
+    $(".{{ recipient_option_cls }}").on("click", function (event) {
+      const $option = $(this);
+      setActive($option);
+    });
+
+    refreshFilteredList();
+  }
+
+  function updatePreview() {
+    let content = $("#{{ content_input_id }}").val();
+    if (!content) {
+      content = "_Nothing to see yet :eyes:_";
+    }
+    $("#{{ preview_id }}").html(parseMarkdown(content));
+  }
+
+  $(() => {
+    initEmoji();
+
+    // Fetch the friends of this user, then initialize the recipients dropdown
+    ajaxRequest("GET", "{{ url_for('list_user_friends') }}", {
+      success: (response, status, jqXHR) => {
+        if (!response.success) {
+          $("#{{ error_container_id }}").append(
+            bsErrorAlert(`Error while fetching friends: ${response.error}`)
+          );
+          return;
+        }
+        initRecipientDropdown(response.users);
+      },
+    });
+
+    $("#{{ content_input_id }}").on("input", function (event) {
+      updatePreview();
+      checkButtonsDisabled();
+    });
+
+    {% if is_draft %}
+    $("#{{ delete_btn_id }}").on("click", function (event) {
+      $("#{{ error_container_id }}").html("");
+      // Delete draft
+      ajaxRequest(
+        "DELETE",
+        "{{ url_for('update_draft_note', draft_id=draft.id) }}",
+        {
+          success: (response, status, jqXHR) => {
+            if (!response.success) {
+              // Close the modal by clicking the close button
+              $("#{{ delete_btn_id }}-close").trigger("click");
+              $("#{{ error_container_id }}").append(
+                bsErrorAlert(response.error)
+              );
+              return;
+            }
+            // After deleting the draft, redirect
+            window.location.assign("{{ url_for('notes') }}");
+          },
+        }
+      );
+    });
+    {% endif %}
+
+    $("#{{ save_btn_id }}").on("click", function (event) {
+      if ($(this).prop("disabled")) return;
+      $("#{{ error_container_id }}").html("");
+      // Save draft
+      const $recipientInput = $("#{{ recipient_input_id }}");
+      if ($recipientInput.hasClass("is-invalid")) return;
+      const recipientId = $recipientInput.attr("recipient-id");
+      const text = $("#{{ content_input_id }}").val();
+      {% if is_draft %}
+      const url = "{{ url_for('update_draft_note', draft_id=draft.id) }}";
+      {% else %}
+      const url = "{{ url_for('create_draft_note') }}";
+      {% endif %}
+      ajaxRequest("POST", url, {
+        contentType: "application/json",
+        data: JSON.stringify({ recipientId, text }),
+        success: (response, status, jqXHR) => {
+          if (!response.success) {
+            $("#{{ error_container_id }}").append(bsErrorAlert(response.error));
+            return;
+          }
+          {% if not is_draft %}
+          // After creating the draft, redirect to its edit page
+          window.location.assign(response.redirectUri);
+          {% endif %}
+        },
+      });
+    });
+
+    $("#{{ send_btn_id }}").on("click", function (event) {
+      if ($(this).prop("disabled")) return;
+      $("#{{ error_container_id }}").html("");
+      // Send note
+      const $recipientInput = $("#{{ recipient_input_id }}");
+      if ($recipientInput.hasClass("is-invalid")) return;
+      const recipientId = $recipientInput.attr("recipient-id");
+      if (recipientId == null) return;
+      const text = $("#{{ content_input_id }}").val();
+      if (!text) return;
+      ajaxRequest("POST", "{{ url_for('send_note') }}", {
+        contentType: "application/json",
+        data: JSON.stringify({
+          {% if is_draft %}
+          draftId: {{ draft.id|e }},
+          {% endif %}
+          recipientId,
+          text,
+        }),
+        success: (response, status, jqXHR) => {
+          if (!response.success) {
+            // Close the modal by clicking the close button
+            $("#{{ send_btn_id }}-close").trigger("click");
+            $("#{{ error_container_id }}").append(bsErrorAlert(response.error));
+            return;
+          }
+          // After sending the note, redirect
+          window.location.assign("{{ url_for('notes') }}");
+        },
+      });
+    });
+
+    updatePreview();
+  });
+</script>
+{% endblock %}

@@ -6,7 +6,7 @@ The database and models.
 
 import re
 from datetime import datetime
-from typing import Optional
+from typing import Dict, Optional
 
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import Boolean, Column, DateTime, ForeignKey, Integer, String
@@ -48,6 +48,8 @@ class User(db.Model):
         self.set_display_name(display_name)
         self.is_deleted = is_deleted
 
+        self._nickname = None
+
     def set_username(self, username: str):
         if not 3 <= len(username) <= 30:
             raise ValueError("Username must be between 3 and 30 characters")
@@ -65,6 +67,24 @@ class User(db.Model):
             )
         self.display_name = display_name
 
+    def set_nickname(self, nickname: str):
+        """Saves this user's nickname to use in other queries. Does not
+        make any database changes.
+        """
+        self._nickname = nickname
+
+    def to_json(self) -> Dict:
+        """Returns a JSON representation of this user."""
+        json = {
+            "id": self.id,
+            "username": self.username,
+            "displayName": self.display_name,
+        }
+        nickname = getattr(self, "_nickname", None)
+        if nickname:
+            json["nickname"] = nickname
+        return json
+
 
 class Friendship(db.Model):
     """A friendship between two users."""
@@ -73,6 +93,9 @@ class Friendship(db.Model):
 
     user1_id = Column(Integer, ForeignKey(User.id), primary_key=True)
     user2_id = Column(Integer, ForeignKey(User.id), primary_key=True)
+
+    user1 = db.relationship("User", foreign_keys=[user1_id])
+    user2 = db.relationship("User", foreign_keys=[user2_id])
 
     def __init__(self, user1_id: int, user2_id: int):
         if user1_id == user2_id:
@@ -95,6 +118,9 @@ class FriendRequest(db.Model):
     sender_id = Column(Integer, ForeignKey(User.id), primary_key=True)
     recipient_id = Column(Integer, ForeignKey(User.id), primary_key=True)
 
+    sender = db.relationship("User", foreign_keys=[sender_id])
+    recipient = db.relationship("User", foreign_keys=[recipient_id])
+
     def __init__(self, sender_id: int, recipient_id: int):
         if sender_id == recipient_id:
             raise ValueError("Cannot be friends with yourself")
@@ -114,6 +140,9 @@ class FriendNickname(db.Model):
     user_id = Column(Integer, ForeignKey(User.id), primary_key=True)
     friend_id = Column(Integer, ForeignKey(User.id), primary_key=True)
     nickname = Column(String(100), nullable=False)
+
+    user = db.relationship("User", foreign_keys=[user_id])
+    friend = db.relationship("User", foreign_keys=[friend_id])
 
     def __init__(self, user_id: int, friend_id: int, nickname: str):
         if user_id == friend_id:
@@ -139,25 +168,39 @@ class DraftNote(db.Model):
     recipient_id = Column(Integer, ForeignKey(User.id))
     text = Column(String(MAX_NOTE_LENGTH), nullable=False, default="")
 
+    user = db.relationship("User", foreign_keys=[user_id])
+    recipient = db.relationship("User", foreign_keys=[recipient_id])
+
     def __init__(
         self, user_id: int, recipient_id: Optional[int] = None, text: str = ""
     ):
-        if user_id == recipient_id:
-            raise ValueError("Cannot send note to yourself")
         self.user_id = user_id
-        self.recipient_id = recipient_id
+        self.set_recipient_id(recipient_id)
         self.set_text(text)
+
+    def set_recipient_id(self, recipient_id: Optional[int] = None):
+        # Assumes the user and recipient are friends
+        if recipient_id is not None and self.user_id == recipient_id:
+            raise ValueError("Cannot send note to yourself")
+        self.recipient_id = recipient_id
 
     def set_text(self, text: str):
         if len(text) > MAX_NOTE_LENGTH:
             raise ValueError("Max note length exceeded")
         self.text = text
 
-    def can_be_purged(self) -> bool:
-        """Returns whether this draft can be purged because it contains
-        no interesting information.
-        """
-        return self.recipient_id is None and len(self.text) == 0
+    def to_json(self) -> Dict:
+        """Returns a JSON representation of this draft note."""
+        json = {
+            "id": self.id,
+            "user": self.user.to_json(),
+        }
+        if self.recipient_id is None:
+            json["recipient"] = None
+        else:
+            json["recipient"] = self.recipient.to_json()
+        json["text"] = self.text
+        return json
 
 
 class Note(db.Model):
@@ -171,14 +214,13 @@ class Note(db.Model):
     text = Column(String(MAX_NOTE_LENGTH), nullable=False, default="")
     time_sent = Column(DateTime(timezone=False), nullable=False)
 
-    def __init__(
-        self,
-        sender_id: int,
-        recipient_id: Optional[int] = None,
-        text: str = "",
-    ):
+    sender = db.relationship("User", foreign_keys=[sender_id])
+    recipient = db.relationship("User", foreign_keys=[recipient_id])
+
+    def __init__(self, sender_id: int, recipient_id: int, text: str):
         if sender_id == recipient_id:
             raise ValueError("Cannot send note to yourself")
+        # Assumes user and recipient are friends
         self.sender_id = sender_id
         self.recipient_id = recipient_id
         self.set_text(text)
@@ -189,7 +231,19 @@ class Note(db.Model):
             raise ValueError("Note text cannot be blank")
         if len(text) > MAX_NOTE_LENGTH:
             raise ValueError("Max note length exceeded")
+        if text.isspace():
+            raise ValueError("Note text cannot be all whitespace")
         self.text = text
+
+    def to_json(self) -> Dict:
+        """Returns a JSON representation of this draft note."""
+        return {
+            "id": self.id,
+            "sender": self.sender.to_json(),
+            "recipient": self.recipient.to_json(),
+            "text": self.text,
+            "timeSent": self.time_sent.isoformat(),
+        }
 
 
 class FavoriteNote(db.Model):
@@ -200,18 +254,24 @@ class FavoriteNote(db.Model):
     user_id = Column(Integer, ForeignKey(User.id), primary_key=True)
     note_id = Column(Integer, ForeignKey(Note.id), primary_key=True)
 
+    user = db.relationship("User")
+    note = db.relationship("Note")
+
     def __init__(self, user_id: int, note_id: int):
         self.user_id = user_id
         self.note_id = note_id
 
 
-class DeletedNotes(db.Model):
+class DeletedNote(db.Model):
     """A note that has been deleted by a user."""
 
     __tablename__ = "DeletedNotes"
 
     user_id = Column(Integer, ForeignKey(User.id), primary_key=True)
     note_id = Column(Integer, ForeignKey(Note.id), primary_key=True)
+
+    user = db.relationship("User")
+    note = db.relationship("Note")
 
     def __init__(self, user_id: int, note_id: int):
         self.user_id = user_id

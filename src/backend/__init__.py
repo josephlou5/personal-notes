@@ -6,7 +6,7 @@ Methods and objects pertaining to the backend database.
 
 from flask_migrate import Migrate
 
-from backend import friend, models, user
+from backend import friend, models, note, user
 from backend.models import db
 
 # =============================================================================
@@ -16,6 +16,7 @@ __all__ = (
     "models",
     "user",
     "friend",
+    "note",
 )
 
 # =============================================================================

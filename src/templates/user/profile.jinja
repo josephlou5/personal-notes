@@ -145,63 +145,28 @@ My Profile
         {# Add border around the bottom to make it look nicer #}
         class="tab-content border border-top-0 rounded-bottom p-3"
       >
+        {% for tab_id in [
+             my_friends_tab_id,
+             outgoing_friend_requests_tab_id,
+             incoming_friend_requests_tab_id
+           ]
+         %}
         <div
-          id="{{ my_friends_tab_id }}-pane"
-          class="tab-pane fade show active"
-          aria-labelledby="{{ my_friends_tab_id }}"
+          id="{{ tab_id }}-pane"
+          class="tab-pane fade {{ 'show active' if loop.first }}"
+          aria-labelledby="{{ tab_id }}"
           role="tabpanel"
           tabindex="0"
         >
-          <div id="{{ my_friends_tab_id }}-list" class="row row-cols-auto g-2">
+          <div id="{{ tab_id }}-list" class="row row-cols-auto g-2">
             <div class="placeholder-glow">
+              {% for _ in range(5) %}
               <span class="placeholder rounded" style="width: 100px;"></span>
-              <span class="placeholder rounded" style="width: 100px;"></span>
-              <span class="placeholder rounded" style="width: 100px;"></span>
-              <span class="placeholder rounded" style="width: 100px;"></span>
-              <span class="placeholder rounded" style="width: 100px;"></span>
+              {% endfor %}
             </div>
           </div>
         </div>
-        <div
-          id="{{ outgoing_friend_requests_tab_id }}-pane"
-          class="tab-pane fade"
-          aria-labelledby="{{ outgoing_friend_requests_tab_id }}"
-          role="tabpanel"
-          tabindex="0"
-        >
-          <div
-            id="{{ outgoing_friend_requests_tab_id }}-list"
-            class="row row-cols-auto g-2"
-          >
-            <div class="placeholder-glow">
-              <span class="placeholder rounded" style="width: 100px;"></span>
-              <span class="placeholder rounded" style="width: 100px;"></span>
-              <span class="placeholder rounded" style="width: 100px;"></span>
-              <span class="placeholder rounded" style="width: 100px;"></span>
-              <span class="placeholder rounded" style="width: 100px;"></span>
-            </div>
-          </div>
-        </div>
-        <div
-          id="{{ incoming_friend_requests_tab_id }}-pane"
-          class="tab-pane fade"
-          aria-labelledby="{{ incoming_friend_requests_tab_id }}"
-          role="tabpanel"
-          tabindex="0"
-        >
-          <div
-            id="{{ incoming_friend_requests_tab_id }}-list"
-            class="row row-cols-auto g-2"
-          >
-            <div class="placeholder-glow">
-              <span class="placeholder rounded" style="width: 100px;"></span>
-              <span class="placeholder rounded" style="width: 100px;"></span>
-              <span class="placeholder rounded" style="width: 100px;"></span>
-              <span class="placeholder rounded" style="width: 100px;"></span>
-              <span class="placeholder rounded" style="width: 100px;"></span>
-            </div>
-          </div>
-        </div>
+        {% endfor %}
       </div>
     </div>
   </div>
@@ -226,11 +191,7 @@ My Profile
     return (response, status, jqXHR) => {
       const $list = $(`#${tabId}-list`);
       $list.html("");
-      if (!response.success) {
-        $list.text(response.error).addClass("text-danger");
-        return;
-      }
-      const usernames = response.usernames;
+      const usernames = response.users.map(({ username }) => username);
       $(`#${tabId}`).append(
         $("<span>", { class: "badge text-bg-secondary" }).text(usernames.length)
       );
