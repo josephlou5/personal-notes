@@ -14,7 +14,13 @@ requested that I revive the trend, but now that we're long distance, I thought
 I'd solve a few issues with little pieces of paper by writing a web app that is
 permanent and digitally accessible. And here it is.
 
-## Minor Issues
+## Creating the app
+
+It took me just about 2 weeks (according to [Wakatime](https://wakatime.com/),
+34 and a half hours!) to create the first working version. I got distracted in
+the middle, but I'm pretty happy with that timeframe.
+
+### Minor Issues
 
 Although I've written web apps before, I wanted to introduce an extra challenge
 for myself with this one by learning a new framework I hadn't used before. I had

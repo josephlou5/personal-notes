@@ -2,7 +2,19 @@
   {
     "version": "0.0.1",
     "timestamp": "2023-11-03 23:55",
-    "title": "Start changelog",
-    "descriptions": ["Create the app"]
+    "title": "Create the app",
+    "descriptions": []
+  },
+  {
+    "version": "0.1.0",
+    "timestamp": "2023-11-16 09:00",
+    "title": "Initial release",
+    "descriptions": [
+      "First release of the system",
+      "Users can create accounts by logging in through Google",
+      "Users can add friends (and set nicknames)",
+      "Users can create, send, and unsend notes",
+      "Users can favorite and delete notes (local operation)"
+    ]
   }
 ]
