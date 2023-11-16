@@ -11,12 +11,32 @@
   padding: 0.75rem 0.75rem;
 }
 
-/* The user's username in the navbar. */
+/* The user's username in the navbar */
 #navbar-username {
-  /* Remove the link underline. */
+  /* Remove the link underline */
   text-decoration-line: none;
 }
 #navbar-username:hover {
-  /* Add a border on hover. */
+  /* Add a border on hover */
   background-color: rgb(100, 100, 100);
+}
+
+.bi-heart-fill {
+  color: red;
+}
+
+.note-cards-container > .card {
+  /* Add spacing between cards */
+  margin-top: 2rem;
+}
+
+.note-timestamp {
+  color: rgb(128, 128, 128);
+}
+
+.note-content > p {
+  margin-bottom: 0.5rem;
+}
+.note-content > :last-child {
+  margin-bottom: 0;
 }

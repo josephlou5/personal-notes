@@ -4,17 +4,10 @@
 {% set all_notes_tab_id = "all-notes-tab" %}
 {% set drafts_tab_id = "drafts-tab" %}
 
+{% set error_container_id = "errors" %}
+
 {% block title %}
 My Notes
-{% endblock %}
-
-{% block style %}
-<style>
-  #{{ notes_tabs_id }}-content > * > * {
-    /* Add spacing between cards */
-    margin-top: 2rem;
-  }
-</style>
 {% endblock %}
 
 {% block body %}
@@ -63,26 +56,18 @@ My Notes
       </button>
     </li>
   </ul>
+  <div id="{{ error_container_id }}"></div>
   <div id="{{ notes_tabs_id }}-content" class="tab-content">
     {% for tab_id in [all_notes_tab_id, drafts_tab_id] %}
     <div
       id="{{ tab_id }}-pane"
-      class="tab-pane fade {{ 'show active' if loop.first }}"
+      class="tab-pane fade {{ 'show active' if loop.first }} note-cards-container"
       aria-labelledby="{{ tab_id }}"
       role="tabpanel"
       tabindex="0"
     >
       {% for _ in range(4) %}
-      <div class="card placeholder-glow">
-        <div class="card-header">
-          <span class="placeholder rounded" style="width: 200px;"></span>
-        </div>
-        <div class="card-body">
-          <span class="placeholder rounded" style="width: 150px;"></span>
-          <span class="placeholder rounded" style="width: 100px;"></span>
-          <span class="placeholder rounded" style="width: 200px;"></span>
-        </div>
-      </div>
+      {% include "notes/loading_card.jinja" %}
       {% endfor %}
     </div>
     {% endfor %}
@@ -91,9 +76,103 @@ My Notes
 {% endblock %}
 
 {% block script %}
+<script src="{{ url_for('static', filename='notes.js') }}"></script>
 <script>
   $(() => {
-    // Page does nothing for now
+    // Modal IDs
+    const deleteDraftModalId = "delete-draft-modal";
+    const sendDraftModalId = "send-draft-modal";
+    const deleteNoteModalId = "delete-note-modal";
+    const unsendNoteModalId = "unsend-note-modal";
+
+    initEmoji();
+
+    const $error = $("#{{ error_container_id }}");
+
+    // When the page loads, fetch notes and drafts
+    ajaxRequest("GET", "{{ url_for('list_notes', html='true') }}", {
+      success: (response, status, jqXHR) => {
+        const $pane = $("#{{ all_notes_tab_id }}-pane");
+        initNoteCards($pane, "No notes yet :(", response, $error);
+
+        initModalActionButton(deleteNoteModalId, {
+          method: "DELETE",
+          buildUrlFunc: (noteId) =>
+            `{{ url_template_for("delete_note", note_id=(0, "${noteId}")) }}`,
+          $error,
+        });
+        initModalActionButton(unsendNoteModalId, {
+          method: "DELETE",
+          buildUrlFunc: (noteId) =>
+            `{{ url_template_for("unsend_note", note_id=(0, "${noteId}")) }}`,
+          $error,
+        });
+
+        $pane.prepend(
+          $("<div>", { class: "d-flex justify-content-between mt-3" }).append(
+            $("<button>", {
+              class: "btn btn-sm btn-outline-success rounded-pill",
+            })
+              .append(bsIcon("check", { class: "me-1 d-none" }), "Favorites")
+              .on("click", function (event) {
+                const $btn = $(this);
+                const $icon = $btn.find(".bi");
+                if ($icon.hasClass("d-none")) {
+                  // Show favorites
+                  $btn.removeClass("btn-outline-success");
+                  $btn.addClass("btn-success");
+                  $icon.removeClass("d-none");
+                  $('[note-type="note"]:not([is-favorite])').addClass("d-none");
+                } else {
+                  // Show all
+                  $btn.removeClass("btn-success");
+                  $btn.addClass("btn-outline-success");
+                  $icon.addClass("d-none");
+                  $('[note-type="note"]').removeClass("d-none");
+                }
+              }),
+            $("<a>", {
+              href: "{{ url_for('deleted_notes') }}",
+              style: "font-size: 0.9em;",
+            }).text("View Deleted")
+          )
+        );
+      },
+    });
+    ajaxRequest("GET", "{{ url_for('list_drafts', html='true') }}", {
+      success: (response, status, jqXHR) => {
+        if (response.numNotes > 0) {
+          $("#{{ drafts_tab_id }}").append(
+            $("<span>", { class: "badge text-bg-secondary ms-1" }).text(
+              response.numNotes
+            )
+          );
+        }
+
+        const $pane = $("#{{ drafts_tab_id }}-pane");
+        initNoteCards($pane, "No drafts", response, $error);
+
+        initModalActionButton(deleteDraftModalId, {
+          method: "DELETE",
+          buildUrlFunc: (draftId) =>
+            `{{ url_template_for("update_draft_note", draft_id=(0, "${draftId}")) }}`,
+          $error,
+        });
+        // Special handling for the request args
+        initModalActionButton(sendDraftModalId, {
+          method: "POST",
+          buildUrlFunc: () => "{{ url_for('send_draft') }}",
+          $error,
+          buildOptionsFunc: (draftId) => ({
+            contentType: "application/json",
+            data: JSON.stringify({ draftId }),
+          }),
+        });
+      },
+    });
+
+    // Refresh the timestamps every minute
+    setInterval(refreshTimestampTooltips, 60 * 1000);
   });
 </script>
 {% endblock %}

@@ -202,6 +202,13 @@ class DraftNote(db.Model):
         json["text"] = self.text
         return json
 
+    def is_ready_to_send(self) -> bool:
+        try:
+            Note(-1, self.recipient_id, self.text)
+        except ValueError:
+            return False
+        return True
+
 
 class Note(db.Model):
     """A note."""
@@ -235,15 +242,46 @@ class Note(db.Model):
             raise ValueError("Note text cannot be all whitespace")
         self.text = text
 
+    def set_deleted(self, is_deleted: bool):
+        """Saves whether the current user has deleted this note. Does
+        not make any database changes.
+        """
+        # pylint: disable=attribute-defined-outside-init
+        self._is_deleted = is_deleted
+
+    def is_deleted(self) -> bool:
+        """Returns whether the current user has deleted this note. Must
+        be manually set. Defaults to False.
+        """
+        return getattr(self, "_is_deleted", False)
+
+    def set_favorited(self, is_favorite: bool):
+        """Saves whether the current user has marked this note as a
+        favorite. Does not make any database changes.
+        """
+        # pylint: disable=attribute-defined-outside-init
+        self._is_favorite = is_favorite
+
+    def is_favorite(self) -> bool:
+        """Returns whether the current user has marked this note as a
+        favorite. Must be manually set. Defaults to False.
+        """
+        return getattr(self, "_is_favorite", False)
+
     def to_json(self) -> Dict:
         """Returns a JSON representation of this draft note."""
-        return {
+        json = {
             "id": self.id,
             "sender": self.sender.to_json(),
             "recipient": self.recipient.to_json(),
             "text": self.text,
             "timeSent": self.time_sent.isoformat(),
         }
+        if hasattr(self, "_is_deleted"):
+            json["is_deleted"] = self.is_deleted()
+        elif hasattr(self, "_is_favorite"):
+            json["is_favorite"] = self.is_favorite()
+        return json
 
 
 class FavoriteNote(db.Model):

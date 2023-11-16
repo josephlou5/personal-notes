@@ -1,0 +1,56 @@
+{% extends "shared/layout.jinja" %}
+
+{% set error_container_id = "errors" %}
+{% set notes_container_id = "deleted-notes-container" %}
+
+{% block title %}
+My Deleted Notes
+{% endblock %}
+
+{% block body %}
+<div id="deleted-notes-body" class="container-fluid body">
+  <h2>My Deleted Notes</h2>
+  <div id="{{ error_container_id }}"></div>
+  <div id="{{ notes_container_id }}" class="note-cards-container">
+    {% for _ in range(3) %}
+    {% include "notes/loading_card.jinja" %}
+    {% endfor %}
+  </div>
+</div>
+{% endblock %}
+
+{% block script %}
+<script src="{{ url_for('static', filename='notes.js') }}"></script>
+<script>
+  $(() => {
+    initEmoji();
+
+    const $error = $("#{{ error_container_id }}");
+
+    // When the page loads, fetch deleted notes
+    ajaxRequest("GET", "{{ url_for('list_deleted_notes', html='true') }}", {
+      success: (response, status, jqXHR) => {
+        const $container = $("#{{ notes_container_id }}");
+        initNoteCards($container, "Nothing in the trash!", response);
+
+        sendAjaxOnClick($container.find(".undelete-note"), {
+          method: "POST",
+          buildUrlFunc: (noteId) =>
+            `{{ url_template_for('delete_note', note_id=(0, "${noteId}")) }}`,
+          $error: $("#{{ error_container_id }}"),
+        });
+
+        initModalActionButton("unsend-note-modal", {
+          method: "DELETE",
+          buildUrlFunc: (noteId) =>
+            `{{ url_template_for("unsend_note", note_id=(0, "${noteId}")) }}`,
+          $error,
+        });
+      },
+    });
+
+    // Refresh the timestamps every minute
+    setInterval(refreshTimestampTooltips, 60 * 1000);
+  });
+</script>
+{% endblock %}

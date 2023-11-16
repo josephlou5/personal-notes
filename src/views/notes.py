@@ -20,7 +20,13 @@ app = AppRoutes()
 @app.route("/notes/", methods=["GET"])
 @login_required()
 def notes():
-    return _render("notes/index.jinja")
+    return _render("notes/index.jinja", include_markdown=True)
+
+
+@app.route("/notes/deleted", methods=["GET"])
+@login_required()
+def deleted_notes():
+    return _render("notes/deleted.jinja", include_markdown=True)
 
 
 @app.route("/notes/new", methods=["GET", "POST"])

@@ -1,0 +1,344 @@
+{% import "shared/macros.jinja" as macros %}
+
+{% set logged_in_id = logged_in_user.id %}
+{% set are_notes = not are_deleted and not are_drafts %}
+
+{% set undelete_note_btn_cls = "undelete-note" %}
+
+{% set delete_draft_modal_id = "delete-draft-modal" %}
+{% set send_draft_modal_id = "send-draft-modal" %}
+{% set delete_note_modal_id = "delete-note-modal" %}
+{% set unsend_note_modal_id = "unsend-note-modal" %}
+
+{% macro _username(user) %}
+{% set username = user.username %}
+<a
+  href="{{ url_for('public_profile', username=username) }}"
+>@{{ username|e }}</a>
+{% endmacro %}
+
+{% if are_drafts %}
+<div
+  id="{{ delete_draft_modal_id }}"
+  class="modal fade"
+  aria-labelledby="{{ delete_draft_modal_id }}-title"
+  aria-hidden="true"
+  tabindex="-1"
+>
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 id="{{ delete_draft_modal_id }}-title" class="modal-title">
+          Delete draft?
+        </h5>
+        {{ macros.bs_close_btn(
+             dismiss="modal",
+             id=(delete_draft_modal_id ~ "-close")
+           )
+        }}
+      </div>
+      <div class="modal-body">
+        Are you sure you want to delete this draft? It cannot be recovered.
+      </div>
+      <div class="modal-footer">
+        <button
+          type="button"
+          class="btn btn-success"
+          data-bs-dismiss="modal"
+          aria-label="Cancel"
+        >
+          Cancel
+        </button>
+        <button
+          type="button"
+          id="{{ delete_draft_modal_id }}-btn"
+          class="btn btn-danger"
+        >
+          Yes, Delete
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+<div
+  id="{{ send_draft_modal_id }}"
+  class="modal fade"
+  aria-labelledby="{{ send_draft_modal_id }}-title"
+  aria-hidden="true"
+  tabindex="-1"
+>
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 id="{{ send_draft_modal_id }}-title" class="modal-title">
+          Send note?
+        </h5>
+        {{ macros.bs_close_btn(
+             dismiss="modal",
+             id=(send_draft_modal_id ~ "-close")
+           )
+        }}
+      </div>
+      <div class="modal-body">
+        Are you sure you want to send this note? You will not be able to edit
+        the content again.
+      </div>
+      <div class="modal-footer">
+        <button
+          type="button"
+          class="btn btn-danger"
+          data-bs-dismiss="modal"
+          aria-label="Cancel"
+        >
+          Cancel
+        </button>
+        <button
+          type="button"
+          id="{{ send_draft_modal_id }}-btn"
+          class="btn btn-success"
+        >
+          Send
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+{% else %}
+{% if are_notes %}
+<div
+  id="{{ delete_note_modal_id }}"
+  class="modal fade"
+  aria-labelledby="{{ delete_note_modal_id }}-title"
+  aria-hidden="true"
+  tabindex="-1"
+>
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 id="{{ delete_note_modal_id }}-title" class="modal-title">
+          Delete note?
+        </h5>
+        {{ macros.bs_close_btn(
+             dismiss="modal",
+             id=(delete_draft_modal_id ~ "-close")
+           )
+        }}
+      </div>
+      <div class="modal-body">
+        Are you sure you want to delete this note? You will not see it in your
+        notes list anymore. (It will not be deleted for the other person.)
+      </div>
+      <div class="modal-footer">
+        <button
+          type="button"
+          class="btn btn-success"
+          data-bs-dismiss="modal"
+          aria-label="Cancel"
+        >
+          Cancel
+        </button>
+        <button
+          type="button"
+          id="{{ delete_note_modal_id }}-btn"
+          class="btn btn-danger"
+        >
+          Yes, Delete
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+{% endif %}
+<div
+  id="{{ unsend_note_modal_id }}"
+  class="modal fade"
+  aria-labelledby="{{ unsend_note_modal_id }}-title"
+  aria-hidden="true"
+  tabindex="-1"
+>
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 id="{{ unsend_note_modal_id }}-title" class="modal-title">
+          Unsend note?
+        </h5>
+        {{ macros.bs_close_btn(
+             dismiss="modal",
+             id=(unsend_note_modal_id ~ "-close")
+           )
+        }}
+      </div>
+      <div class="modal-body">
+        Are you sure you want to unsend this note? The recipient will no longer
+        have access to this note. This action cannot be undone.
+      </div>
+      <div class="modal-footer">
+        <button
+          type="button"
+          class="btn btn-success"
+          data-bs-dismiss="modal"
+          aria-label="Cancel"
+        >
+          Cancel
+        </button>
+        <button
+          type="button"
+          id="{{ unsend_note_modal_id }}-btn"
+          class="btn btn-danger"
+        >
+          Yes, Unsend
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+{% endif %}
+
+{% for note in notes %}
+{% set note_type = "draft" if are_drafts else "note" %}
+{% set note_id_prefix = note_type ~ "-" ~ (note.id|e) %}
+{% set sent_by_user = not are_drafts and note.sender_id == logged_in_id %}
+{% set is_favorite = are_notes and note.is_favorite() %}
+<div
+  id="{{ note_id_prefix }}-card"
+  class="card"
+  note-type="{{ note_type }}"
+  {% if is_favorite %}
+  is-favorite="true"
+  {% endif %}
+>
+  {# No padding on right for the dot menu #}
+  <div class="card-header d-flex align-items-center pe-0">
+    <div class="flex-grow-1">
+      <div class="row align-items-center">
+        <div class="col">
+          <h6 class="mb-0">
+            {% if are_drafts %}
+            Draft
+            {% if note.recipient_id is not none %}
+            to {{ _username(note.recipient) }}
+            {% endif %}
+            {% else %}
+            {% if sent_by_user %}
+            You to {{ _username(note.recipient) }}
+            {% elif note.recipient_id == logged_in_id %}
+            {{ _username(note.sender) }} to You
+            {% else %}
+            {# Shouldn't happen, but just in case #}
+            {{ _username(note.sender) }} to {{ _username(note.recipient) }}
+            {% endif %}
+            {% endif %}
+          </h6>
+        </div>
+        {% if are_notes or are_deleted %}
+        <div class="col-auto">
+          {# Will be converted into a tooltip if necessary #}
+          <span
+            class="note-timestamp"
+            iso="{{ dt_localize(note.time_sent).isoformat()|e }}"
+          ></span>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+    {% if are_drafts %}
+    <div class="ms-3">
+      <a
+        href="{{ url_for('edit_draft_note', draft_id=note.id) }}"
+        class="btn btn-sm btn-success"
+      >
+        Edit
+      </a>
+    </div>
+    {% elif are_notes %}
+    <div class="note-favorite-btn ms-3" note-id="{{ note.id|e }}" role="button">
+      {% if is_favorite %}
+      <i class="bi bi-heart-fill"></i>
+      {% else %}
+      <i class="bi bi-heart"></i>
+      {% endif %}
+    </div>
+    {% endif %}
+    <div class="mx-2" role="button">
+      <div
+        data-bs-toggle="dropdown"
+        data-bs-auto-close="true"
+        aria-expanded="false"
+      >
+        <i class="bi bi-three-dots-vertical"></i>
+        <ul
+          class="dropdown-menu dropdown-menu-end"
+          style="
+            --bs-dropdown-padding-y: 0.25rem;
+            --bs-dropdown-divider-margin-y: 0.25rem;
+          "
+        >
+          {% if are_deleted %}
+          <li>
+            <button
+              type="button"
+              class="dropdown-item text-danger {{ undelete_note_btn_cls }}"
+              note-id="{{ note.id|e }}"
+            >
+              Undelete
+            </button>
+          </li>
+          {% else %}
+          <li>
+            <button
+              type="button"
+              class="dropdown-item text-danger"
+              note-id="{{ note.id|e }}"
+              data-bs-toggle="modal"
+              {% if are_drafts %}
+              data-bs-target="#{{ delete_draft_modal_id }}"
+              {% else %}
+              data-bs-target="#{{ delete_note_modal_id }}"
+              {% endif %}
+            >
+              <i class="bi bi-trash me-1"></i>
+              Delete
+            </button>
+          </li>
+          {% endif %}
+          {% if are_drafts or sent_by_user %}
+          <li><hr class="dropdown-divider"></li>
+          {% if are_drafts %}
+          <li>
+            <button
+              type="button"
+              class="dropdown-item"
+              note-id="{{ note.id|e }}"
+              data-bs-toggle="modal"
+              data-bs-target="#{{ send_draft_modal_id }}"
+              {% if not note.is_ready_to_send() %}
+              disabled
+              {% endif %}
+            >
+              Send
+            </button>
+          </li>
+          {% elif sent_by_user %}
+          <li>
+            <button
+              type="button"
+              class="dropdown-item"
+              note-id="{{ note.id|e }}"
+              data-bs-toggle="modal"
+              data-bs-target="#{{ unsend_note_modal_id }}"
+            >
+              Unsend
+            </button>
+          </li>
+          {% endif %}
+          {% endif %}
+        </ul>
+      </div>
+    </div>
+  </div>
+  <div
+    class="card-body note-content"
+    not-converted="true"
+  >{{ note.text|e }}</div>
+</div>
+{% endfor %}

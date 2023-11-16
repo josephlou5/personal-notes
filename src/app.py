@@ -4,7 +4,10 @@ Contains the global Flask app instance (and some server code).
 
 # =============================================================================
 
-from flask import Flask, redirect, request
+from datetime import datetime
+
+import pytz
+from flask import Flask, redirect, request, url_for
 from flask_wtf.csrf import CSRFProtect
 from werkzeug.exceptions import NotFound
 
@@ -34,11 +37,28 @@ backend.init_app(app)
 # =============================================================================
 
 
+def url_template_for(endpoint, **kwargs):
+    """Returns a url for the given endpoint with the arguments replaced."""
+    url = url_for(
+        endpoint, **{key: value for key, (value, _) in kwargs.items()}
+    )
+    for _, (value, template) in kwargs.items():
+        url = url.replace(str(value), str(template))
+    return url
+
+
+def dt_localize(naive_dt: datetime):
+    """Localizes a naive datetime object to UTC."""
+    return pytz.utc.localize(naive_dt)
+
+
 @app.context_processor
 def inject_template_variables():
     variables = {
         "APP_NAME": APP_NAME,
         "REPO_URL": "https://github.com/josephlou5/personal-notes",
+        "url_template_for": url_template_for,
+        "dt_localize": dt_localize,
     }
     session_user = get_logged_in_user()
     variables.update(

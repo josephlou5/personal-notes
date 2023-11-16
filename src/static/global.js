@@ -11,6 +11,26 @@ function copyTextToClipboard(text) {
   return navigator.clipboard.writeText(text);
 }
 
+function pad0(value, length) {
+  return String(value).padStart(length, "0");
+}
+
+/** Formats the given datetime in the "Weekday, YYYY-MM-DD HH:MM:SS" format. */
+function strftime(datetime) {
+  // JavaScript annoyingly doesn't have a strftime method, so doing this
+  // manually...
+  const weekday = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"][
+    datetime.getDay()
+  ];
+  const year = pad0(datetime.getFullYear(), 4);
+  const month = pad0(datetime.getMonth() + 1, 2);
+  const day = pad0(datetime.getDate(), 2);
+  const hour = pad0(datetime.getHours(), 2);
+  const minute = pad0(datetime.getMinutes(), 2);
+  const second = pad0(datetime.getSeconds(), 2);
+  return `${weekday}, ${year}-${month}-${day} ${hour}:${minute}:${second}`;
+}
+
 /******************************************************************************
  * jQuery                                                                     *
  ******************************************************************************/
@@ -39,6 +59,11 @@ function ajaxRequest(method, url, options = {}) {
  * Bootstrap                                                                  *
  ******************************************************************************/
 
+/** Creates a Bootstrap icon. */
+function bsIcon(code, { class: extraClasses = "" } = {}) {
+  return $("<i>", { class: `bi bi-${code} ${extraClasses}` });
+}
+
 /** Creates a Bootstrap close button. */
 function bsCloseBtn({ dismiss }) {
   return $("<button>", {
@@ -52,7 +77,7 @@ function bsCloseBtn({ dismiss }) {
 /** Creates a Bootstrap alert with the given error message. */
 function bsErrorAlert(
   message,
-  { classes: extraClasses = "", dismissible = true } = {}
+  { class: extraClasses = "", dismissible = true } = {}
 ) {
   const classes = ["alert", "alert-danger"];
   if (dismissible) {

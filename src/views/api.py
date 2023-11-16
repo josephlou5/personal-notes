@@ -5,9 +5,9 @@ API methods.
 # =============================================================================
 
 from functools import wraps
-from typing import Dict
+from typing import Dict, Optional, Tuple
 
-from flask import request, url_for
+from flask import render_template, request, url_for
 
 import backend
 from utils.auth import get_logged_in_user
@@ -148,7 +148,35 @@ def update_friend_request(session_user, user_id):
 # =============================================================================
 
 
-def _get_draft_args(args: Dict, recipient_required=False):
+@api_route("/api/drafts/", methods=["GET"])
+def list_drafts(session_user):
+    session_user_id = session_user["id"]
+
+    as_html = "html" in request.args
+
+    drafts = backend.note.get_all_drafts(session_user_id)
+
+    if as_html:
+        return {
+            "success": True,
+            "numNotes": len(drafts),
+            "notesHtml": render_template(
+                "notes/notes_list.jinja",
+                are_deleted=False,
+                are_drafts=True,
+                notes=drafts,
+            ),
+        }
+
+    return {
+        "success": True,
+        "notes": [draft.to_json() for draft in drafts],
+    }
+
+
+def _get_draft_args(
+    args: Dict, recipient_required: bool = False, text_required: bool = True
+) -> Tuple[Optional[int], Optional[str]]:
     """Gets and validates args for a draft note.
 
     Errors should be handled by the caller.
@@ -168,7 +196,7 @@ def _get_draft_args(args: Dict, recipient_required=False):
                 f"expected int for {RECIPIENT_ID_KEY!r} key"
             ) from None
     text = args.get(TEXT_KEY, None)
-    if text is None:
+    if text_required and text is None:
         raise ValueError(f"missing {TEXT_KEY!r} key")
 
     return recipient_id, text
@@ -237,8 +265,8 @@ def update_draft_note(session_user, draft_id):
     return {"success": False, "error": f"Unsupported method: {request.method}"}
 
 
-@api_route("/api/notes/send", methods=["POST"])
-def send_note(session_user):
+@api_route("/api/drafts/send", methods=["POST"])
+def send_draft(session_user):
     session_user_id = session_user["id"]
 
     # Get request args
@@ -246,8 +274,6 @@ def send_note(session_user):
     if args is None:
         return {"success": False, "error": "Invalid JSON data"}
     try:
-        recipient_id, text = _get_draft_args(args, recipient_required=True)
-
         DRAFT_ID_KEY = "draftId"
         draft_id = args.get(DRAFT_ID_KEY, None)
         if draft_id is not None:
@@ -257,20 +283,186 @@ def send_note(session_user):
                 raise ValueError(
                     f"expected int for {DRAFT_ID_KEY!r} key"
                 ) from None
+
+        # If draft ID is not given, we need the note parameters
+        # Otherwise, get them if they exist (override the saved draft)
+        required = draft_id is None
+        recipient_id, text = _get_draft_args(
+            args, recipient_required=required, text_required=required
+        )
     except ValueError as ex:
         return {"success": False, "error": f"Invalid JSON data: {ex}"}
 
     try:
+        draft = None
+        if draft_id is not None:
+            draft = backend.note.get_draft(draft_id)
+            if draft is None:
+                return {
+                    "success": False,
+                    "error": f"Draft not found with ID: {draft_id}",
+                }
+            if draft.user_id != session_user_id:
+                return {
+                    "success": False,
+                    "error": "Draft does not belong to requesting user",
+                }
+            if recipient_id is not None:
+                draft.set_recipient_id(recipient_id)
+            else:
+                recipient_id = draft.recipient_id
+            if text is not None:
+                draft.set_text(text)
+            else:
+                text = draft.text
+
+            if not draft.is_ready_to_send():
+                return {
+                    "success": False,
+                    "error": "Draft is not ready to send",
+                }
+
         note = backend.note.create(session_user_id, recipient_id, text)
+
+        if draft is not None:
+            # Delete the draft
+            backend.note.delete_draft(draft)
     except ValueError as ex:
         return {"success": False, "error": str(ex)}
 
-    if draft_id is not None:
-        # Delete the existing draft if the note was created successfully
-        draft = backend.note.get_draft(draft_id)
-        if draft is not None and draft.user_id == session_user_id:
-            # Only delete if exists and has permission; otherwise
-            # silently ignore
-            backend.note.delete_draft(draft)
-
     return {"success": True, "noteId": note.id}
+
+
+# =============================================================================
+
+
+@api_route("/api/notes/", methods=["GET"])
+def list_notes(session_user):
+    session_user_id = session_user["id"]
+
+    as_html = "html" in request.args
+
+    notes = backend.note.get_all(session_user_id)
+
+    if as_html:
+        return {
+            "success": True,
+            "numNotes": len(notes),
+            "notesHtml": render_template(
+                "notes/notes_list.jinja",
+                are_deleted=False,
+                are_drafts=False,
+                notes=notes,
+            ),
+        }
+
+    return {
+        "success": True,
+        "notes": [note.to_json() for note in notes],
+    }
+
+
+@api_route("/api/notes/deleted", methods=["GET"])
+def list_deleted_notes(session_user):
+    session_user_id = session_user["id"]
+
+    as_html = "html" in request.args
+
+    notes = backend.note.get_deleted(session_user_id)
+
+    if as_html:
+        return {
+            "success": True,
+            "numNotes": len(notes),
+            "notesHtml": render_template(
+                "notes/notes_list.jinja",
+                are_deleted=True,
+                are_drafts=False,
+                notes=notes,
+            ),
+        }
+
+    return {
+        "success": True,
+        "notes": [note.to_json() for note in notes],
+    }
+
+
+@api_route("/api/notes/favorites", methods=["POST"])
+def toggle_favorite(session_user):
+    # Note: This URL is hard-coded in `notes.js` since templating is not
+    # available there
+
+    NOTE_ID_KEY = "noteId"
+
+    session_user_id = session_user["id"]
+
+    args = request.get_json(silent=True)
+    if args is None:
+        return {"success": False, "error": "Invalid JSON data"}
+    try:
+        note_id = args.get(NOTE_ID_KEY, None)
+        if note_id is None:
+            raise ValueError(f"missing {NOTE_ID_KEY!r} key")
+        try:
+            note_id = int(note_id)
+        except ValueError:
+            raise ValueError(f"expected int for {NOTE_ID_KEY!r} key") from None
+    except ValueError as ex:
+        return {"success": False, "error": f"Invalid JSON data: {ex}"}
+
+    note = backend.note.get(note_id)
+    if note is None:
+        return {
+            "success": False,
+            "error": f"Note not found with ID: {note_id}",
+        }
+
+    is_favorite = backend.note.toggle_favorite(session_user_id, note.id)
+    return {"success": True, "isFavorite": is_favorite}
+
+
+@api_route("/api/notes/<int:note_id>/delete", methods=["POST", "DELETE"])
+def delete_note(session_user, note_id):
+    """Deletes or undeletes the given note for the requesting user only.
+
+    POST will undelete the note, while DELETE will delete it.
+    """
+    session_user_id = session_user["id"]
+
+    note = backend.note.get(note_id)
+    if note is None:
+        return {
+            "success": False,
+            "error": f"Note not found with ID: {note_id}",
+        }
+
+    if request.method == "POST":
+        backend.note.undelete_for_user(note, session_user_id)
+        return {"success": True}
+    elif request.method == "DELETE":
+        backend.note.delete_for_user(note, session_user_id)
+        return {"success": True}
+
+    return {"success": False, "error": f"Unsupported method: {request.method}"}
+
+
+@api_route("/api/notes/<int:note_id>/unsend", methods=["DELETE"])
+def unsend_note(session_user, note_id):
+    """Unsends the note (deletes for everyone)."""
+    session_user_id = session_user["id"]
+
+    note = backend.note.get(note_id)
+    if note is None:
+        return {
+            "success": False,
+            "error": f"Note not found with ID: {note_id}",
+        }
+    if note.sender_id != session_user_id:
+        return {
+            "success": False,
+            "error": "Note does not belong to requesting user",
+        }
+
+    backend.note.unsend(note)
+    return {"success": True}

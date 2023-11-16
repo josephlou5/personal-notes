@@ -63,12 +63,6 @@
   #{{ preview_id }} {
     padding: 0.75rem;
   }
-  #{{ preview_id }} > p {
-    margin-bottom: 0.5rem;
-  }
-  #{{ preview_id }} > :last-child {
-    margin-bottom: 0;
-  }
 
   #{{ cancel_btn_id }}:hover {
     --bs-btn-hover-bg: var(--bs-danger-bg-subtle);
@@ -120,9 +114,9 @@
 <div
   id="{{ delete_btn_id }}-modal"
   class="modal fade"
-  tabindex="-1"
   aria-labelledby="{{ delete_btn_id }}-modal-title"
   aria-hidden="true"
+  tabindex="-1"
 >
   <div class="modal-dialog">
     <div class="modal-content">
@@ -141,7 +135,7 @@
           type="button"
           class="btn btn-success"
           data-bs-dismiss="modal"
-          aria-label="Close"
+          aria-label="Cancel"
         >
           Cancel
         </button>
@@ -160,9 +154,9 @@
 <div
   id="{{ send_btn_id }}-modal"
   class="modal fade"
-  tabindex="-1"
   aria-labelledby="{{ send_btn_id }}-modal-title"
   aria-hidden="true"
+  tabindex="-1"
 >
   <div class="modal-dialog">
     <div class="modal-content">
@@ -182,7 +176,7 @@
           type="button"
           class="btn btn-danger"
           data-bs-dismiss="modal"
-          aria-label="Close"
+          aria-label="Cancel"
         >
           Cancel
         </button>
@@ -285,7 +279,7 @@
       </div>
       <div class="mb-3">
         <div class="fw-semibold mb-2">Preview</div>
-        <div id="{{ preview_id }}" class="border rounded"></div>
+        <div id="{{ preview_id }}" class="note-content border rounded"></div>
       </div>
       <div class="row">
         <div class="col">
@@ -559,7 +553,7 @@
 
   function updatePreview() {
     let content = $("#{{ content_input_id }}").val();
-    if (!content) {
+    if (!content.trim()) {
       content = "_Nothing to see yet :eyes:_";
     }
     $("#{{ preview_id }}").html(parseMarkdown(content));
@@ -650,7 +644,7 @@
       if (recipientId == null) return;
       const text = $("#{{ content_input_id }}").val();
       if (!text) return;
-      ajaxRequest("POST", "{{ url_for('send_note') }}", {
+      ajaxRequest("POST", "{{ url_for('send_draft') }}", {
         contentType: "application/json",
         data: JSON.stringify({
           {% if is_draft %}
