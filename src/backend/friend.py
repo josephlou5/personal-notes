@@ -166,6 +166,16 @@ def cancel_request(sender_id: int, recipient_id: int):
     db.session.commit()
 
 
+def reject_request(recipient_id: int, sender_id: int):
+    """Rejects a friend request from the sender to the recipient."""
+    friend_request = _get_friend_request(sender_id, recipient_id)
+    if friend_request is None:
+        raise ValueError("Friend request does not exist")
+
+    db.session.delete(friend_request)
+    db.session.commit()
+
+
 def accept_request(sender_id: int, recipient_id: int):
     """Accepts a friend request from the sender to the recipient.
 

@@ -43,6 +43,14 @@ def api_route(rule, **options):
 # =============================================================================
 
 
+@app.route("/api/<path:subpath>", methods=["GET", "POST", "DELETE"])
+def unrecognized_api_method(subpath):
+    return {
+        "success": False,
+        "error": f"Invalid API route: {request.method} {request.path}",
+    }
+
+
 @api_route("/api/friends/", methods=["GET"])
 def list_user_friends(session_user):
     users = backend.friend.get_all(session_user["id"])
@@ -143,6 +151,21 @@ def update_friend_request(session_user, user_id):
         return {"success": True}
 
     return {"success": False, "error": f"Unsupported method: {request.method}"}
+
+
+@api_route("/api/friend_requests/<int:user_id>/reject", methods=["DELETE"])
+def reject_friend_request(session_user, user_id):
+    session_user_id = session_user["id"]
+
+    user = backend.user.get(user_id)
+    if user is None:
+        return {"success": False, "error": "Requested user does not exist"}
+
+    try:
+        backend.friend.reject_request(session_user_id, user_id)
+    except ValueError as ex:
+        return {"success": False, "error": str(ex)}
+    return {"success": True}
 
 
 # =============================================================================
