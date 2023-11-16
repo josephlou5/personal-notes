@@ -75,6 +75,16 @@ def delete_draft(draft: DraftNote):
     db.session.commit()
 
 
+def delete_all_drafts(user_id: int):
+    """Deletes all the drafts for the given user."""
+    drafts = get_all_drafts(user_id)
+    if len(drafts) == 0:
+        return
+    for draft in drafts:
+        db.session.delete(draft)
+    db.session.commit()
+
+
 # =============================================================================
 
 
@@ -166,6 +176,24 @@ def unsend(note: Note):
     db.session.commit()
 
 
+def unsend_all(user_id: int):
+    """Unsends all notes sent by the given user."""
+    notes = query(Note, Note.sender_id == user_id).all()
+    if len(notes) == 0:
+        return
+    # Manually delete all children
+    note_ids = set(note.id for note in notes)
+    children = itertools.chain(
+        query(FavoriteNote, FavoriteNote.note_id.in_(note_ids)).all(),
+        query(DeletedNote, DeletedNote.note_id.in_(note_ids)).all(),
+    )
+    for child in children:
+        db.session.delete(child)
+    for note in notes:
+        db.session.delete(note)
+    db.session.commit()
+
+
 # =============================================================================
 
 
@@ -195,9 +223,31 @@ def delete_for_user(note: Note, user_id: int):
     ).one_or_none()
     if deleted is not None:
         return
-    deleted = DeletedNote(user_id, note.id)
-    db.session.add(deleted)
+    db.session.add(DeletedNote(user_id, note.id))
     db.session.commit()
+
+
+def delete_all_received_notes(user_id: int):
+    """Deletes all the received notes for the given user only."""
+    notes_with_deleted = db.session.execute(
+        select(Note, DeletedNote)
+        .outerjoin(
+            DeletedNote,
+            and_(
+                DeletedNote.user_id == user_id, DeletedNote.note_id == Note.id
+            ),
+        )
+        .where(Note.recipient_id == user_id)
+    ).all()
+    created = False
+    for note, deleted in notes_with_deleted:
+        if deleted is not None:
+            # Already deleted
+            continue
+        created = True
+        db.session.add(DeletedNote(user_id, note.id))
+    if created:
+        db.session.commit()
 
 
 def undelete_for_user(note: Note, user_id: int):

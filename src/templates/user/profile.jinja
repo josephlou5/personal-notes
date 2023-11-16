@@ -13,6 +13,7 @@
 {% set incoming_friend_requests_tab_id = "incoming-requests-tab" %}
 
 {% set danger_zone_id = "danger-zone" %}
+{% set danger_zone_modal_id = danger_zone_id ~ "-modal" %}
 
 {% block title %}
 My Profile
@@ -37,6 +38,41 @@ My Profile
 {% endblock %}
 
 {% block body %}
+<div
+  id="{{ danger_zone_modal_id }}"
+  class="modal fade"
+  aria-labelledby="{{ danger_zone_modal_id }}-title"
+  aria-hidden="true"
+  tabindex="-1"
+>
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 id="{{ danger_zone_modal_id }}-title" class="modal-title"></h5>
+        {{ macros.bs_close_btn(dismiss="modal") }}
+      </div>
+      <div id="{{ danger_zone_modal_id }}-body" class="modal-body"></div>
+      <div class="modal-footer">
+        <button
+          type="button"
+          class="btn btn-success"
+          data-bs-dismiss="modal"
+          aria-label="Cancel"
+        >
+          Cancel
+        </button>
+        <button
+          type="button"
+          id="{{ danger_zone_modal_id }}-btn"
+          class="btn btn-danger"
+        >
+          Yes, Delete
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <div id="profile-body" class="container-fluid body">
   <div class="card">
     <h5 class="card-header">Profile</h5>
@@ -173,12 +209,78 @@ My Profile
   <div class="card mt-4 border-danger border-2">
     <h5 class="card-header text-bg-danger">Danger Zone</h5>
     <div id="{{ danger_zone_id }}" class="card-body">
-      {# These buttons don't currently do anything #}
-      <button type="button" class="btn btn-danger">
+      <div class="alert alert-sm alert-warning" role="alert">
+        <i class="bi bi-exclamation-triangle-fill"></i>
+        WARNING: This is a danger zone. Many operations here are irreversible.
+        Proceed with caution.
+      </div>
+      <button
+        type="button"
+        class="btn btn-danger"
+        data-bs-toggle="modal"
+        data-bs-target="#{{ danger_zone_modal_id }}"
+        target-url="{{ url_for('delete_all_friends') }}"
+      >
         Remove all my friends
+        <span class="{{ danger_zone_modal_id }}-title d-none visually-hidden">
+          Remove all friends?
+        </span>
+        <span class="{{ danger_zone_modal_id }}-body d-none visually-hidden">
+          Are you sure you want to remove <strong>all your friends</strong>? You
+          will still be able to see all previous notes they've sent to you, but
+          you will need to request to be friends again to send or receive any
+          more.
+        </span>
       </button>
-      <button type="button" class="btn btn-danger">
-        Delete all my sent notes
+      <button
+        type="button"
+        class="btn btn-danger"
+        data-bs-toggle="modal"
+        data-bs-target="#{{ danger_zone_modal_id }}"
+        target-url="{{ url_for('delete_all_drafts') }}"
+      >
+        Delete all my drafts
+        <span class="{{ danger_zone_modal_id }}-title d-none visually-hidden">
+          Delete all drafts?
+        </span>
+        <span class="{{ danger_zone_modal_id }}-body d-none visually-hidden">
+          Are you sure you want to delete <strong>all your drafts</strong>? They
+          cannot be recovered.
+        </span>
+      </button>
+      <button
+        type="button"
+        class="btn btn-danger"
+        data-bs-toggle="modal"
+        data-bs-target="#{{ danger_zone_modal_id }}"
+        target-url="{{ url_for('unsend_all_notes') }}"
+      >
+        Unsend all my sent notes
+        <span class="{{ danger_zone_modal_id }}-title d-none visually-hidden">
+          Unsend all notes?
+        </span>
+        <span class="{{ danger_zone_modal_id }}-body d-none visually-hidden">
+          Are you sure you want to unsend <strong>all your sent notes</strong>?
+          The recipients will no longer have access to them. This action cannot
+          be undone.
+        </span>
+      </button>
+      <button
+        type="button"
+        class="btn btn-danger"
+        data-bs-toggle="modal"
+        data-bs-target="#{{ danger_zone_modal_id }}"
+        target-url="{{ url_for('delete_all_received_notes') }}"
+      >
+        Delete all my received notes
+        <span class="{{ danger_zone_modal_id }}-title d-none visually-hidden">
+          Delete all received notes?
+        </span>
+        <span class="{{ danger_zone_modal_id }}-body d-none visually-hidden">
+          Are you sure you want to delete
+          <strong>all your received notes</strong>? You will not see them in
+          your notes list anymore. (They will not be deleted for the sender.)
+        </span>
       </button>
     </div>
   </div>
@@ -196,7 +298,11 @@ My Profile
         $("<span>", { class: "badge text-bg-secondary" }).text(usernames.length)
       );
       if (usernames.length === 0) {
-        $list.append($("<div>", { class: "col" }).text(noUsernamesText));
+        $list.append(
+          $("<div>", { class: "col" }).append(
+            $("<span>", { class: "fst-italic" }).text(noUsernamesText)
+          )
+        );
         return;
       }
       for (const username of usernames) {
@@ -247,6 +353,34 @@ My Profile
         "{{ incoming_friend_requests_tab_id }}",
         "No incoming friend requests :("
       ),
+    });
+
+    // Set up danger zone
+    const $modalBtn = $("#{{ danger_zone_modal_id }}-btn");
+    $("#{{ danger_zone_modal_id }}").on("show.bs.modal", function (event) {
+      const $trigger = $(event.relatedTarget);
+      $("#{{ danger_zone_modal_id }}-title").text(
+        $trigger.find(".{{ danger_zone_modal_id }}-title").text()
+      );
+      $("#{{ danger_zone_modal_id }}-body").html(
+        $trigger.find(".{{ danger_zone_modal_id }}-body").html()
+      );
+      $modalBtn.attr("target-url", $trigger.attr("target-url"));
+    });
+    $modalBtn.on("click", function (event) {
+      const targetUrl = $modalBtn.attr("target-url");
+      if (!targetUrl) {
+        console.warning("Could not get target url:", $modalBtn);
+        // Refresh page to hopefully fix the invalid state
+        window.location.reload();
+        return;
+      }
+      ajaxRequest("DELETE", targetUrl, {
+        success: (response, status, jqXHR) => {
+          // Refresh on success (not possible to fail)
+          window.location.reload();
+        },
+      });
     });
 
     dismissSuccessAlerts();

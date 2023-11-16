@@ -6,7 +6,7 @@ Helper methods for friendships, friend requests, and friend nicknames.
 
 from typing import List, Optional
 
-from sqlalchemy import and_, select
+from sqlalchemy import and_, or_, select
 
 from backend._utils import query
 from backend.models import FriendNickname, FriendRequest, Friendship, User, db
@@ -85,6 +85,19 @@ def remove(user1_id: int, user2_id: int):
         raise ValueError("Users are not friends")
 
     db.session.delete(friendship)
+    db.session.commit()
+
+
+def remove_all(user_id: int):
+    """Removes all the friendships the given user has."""
+    friendships = query(
+        Friendship,
+        or_(Friendship.user1_id == user_id, Friendship.user2_id == user_id),
+    ).all()
+    if len(friendships) == 0:
+        return
+    for friendship in friendships:
+        db.session.delete(friendship)
     db.session.commit()
 
 

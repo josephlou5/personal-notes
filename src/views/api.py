@@ -51,6 +51,9 @@ def unrecognized_api_method(subpath):
     }
 
 
+# =============================================================================
+
+
 @api_route("/api/friends/", methods=["GET"])
 def list_user_friends(session_user):
     users = backend.friend.get_all(session_user["id"])
@@ -165,6 +168,33 @@ def reject_friend_request(session_user, user_id):
         backend.friend.reject_request(session_user_id, user_id)
     except ValueError as ex:
         return {"success": False, "error": str(ex)}
+    return {"success": True}
+
+
+# =============================================================================
+
+
+@api_route("/api/danger/friends", methods=["DELETE"])
+def delete_all_friends(session_user):
+    backend.friend.remove_all(session_user["id"])
+    return {"success": True}
+
+
+@api_route("/api/danger/drafts", methods=["DELETE"])
+def delete_all_drafts(session_user):
+    backend.note.delete_all_drafts(session_user["id"])
+    return {"success": True}
+
+
+@api_route("/api/danger/notes/unsend", methods=["DELETE"])
+def unsend_all_notes(session_user):
+    backend.note.unsend_all(session_user["id"])
+    return {"success": True}
+
+
+@api_route("/api/danger/notes", methods=["DELETE"])
+def delete_all_received_notes(session_user):
+    backend.note.delete_all_received_notes(session_user["id"])
     return {"success": True}
 
 
