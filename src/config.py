@@ -29,6 +29,9 @@ class Config:
     SECRET_KEY = "secret"
 
     SQLALCHEMY_TRACK_MODIFICATIONS = False
+    # Attempt to re-establish closed connections due to server restarts
+    # (which Render does in free tier web services)
+    SQLALCHEMY_ENGINE_OPTIONS = {"pool_pre_ping": True}
 
 
 class ProdConfig(Config):
