@@ -16,5 +16,14 @@
       "Users can create, send, and unsend notes",
       "Users can favorite and delete notes (local operation)"
     ]
+  },
+  {
+    "version": "0.1.1",
+    "timestamp": "2023-11-17 08:45",
+    "title": "Fix unexpectedly closed SSL Connection bug",
+    "descriptions": [
+      "Sometimes things wouldn't work during the first database request after a server restart. This change fixes that.",
+      "Technical explanation: Render spins down free tier web services after inactivity, so the server was restarting quite often. It turns out SQLAlchemy's default connection pooling is unable to retrigger after a server restart, and then crashes when trying to use the now-invalid connections during the first request after a restart. Adding an option to pre-ping before every connection should fix the issue."
+    ]
   }
 ]
